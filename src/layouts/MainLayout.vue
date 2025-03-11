@@ -71,7 +71,7 @@ const router = useRouter();
 const { user } = useAuth();
 const { isDark } = useAppTheme();
 
-const drawer = ref(true);
+const drawer = ref(false);
 
 const navigateHome = () => {
   if (user.value?.rol === 'pending') {
