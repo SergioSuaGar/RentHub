@@ -1,5 +1,7 @@
 import { ref, watch } from 'vue';
 import { useTheme } from 'vuetify';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/services/firebase';
 
 export function useAppTheme() {
   const theme = useTheme();
@@ -19,8 +21,36 @@ export function useAppTheme() {
     isDark.value = !isDark.value;
   };
 
+  // Función para establecer el tema desde las preferencias del usuario
+  const setThemeFromUserPreferences = (userSettings) => {
+    if (userSettings?.theme) {
+      isDark.value = userSettings.theme === 'dark';
+    }
+  };
+
+  // Función para guardar el tema en Firestore
+  const saveThemeToFirestore = async (userId) => {
+    if (userId) {
+      try {
+        await setDoc(
+          doc(db, 'usuarios', userId),
+          {
+            settings: {
+              theme: isDark.value ? 'dark' : 'light',
+            },
+          },
+          { merge: true }
+        );
+      } catch (error) {
+        console.error('Error al guardar el tema:', error);
+      }
+    }
+  };
+
   return {
     isDark,
     toggleTheme,
+    setThemeFromUserPreferences,
+    saveThemeToFirestore,
   };
 }

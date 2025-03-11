@@ -44,13 +44,20 @@
 <script setup>
 import { computed } from 'vue';
 import { useAppTheme } from '@/composables/useTheme';
+import { useAuth } from '@/composables/useAuth';
 
-const { isDark, toggleTheme } = useAppTheme();
+const { isDark, toggleTheme, saveThemeToFirestore } = useAppTheme();
+const { user } = useAuth();
 
 // Crear un computed con getter y setter para manejar el cambio de tema
 const isDarkTheme = computed({
   get: () => isDark.value,
-  set: () => toggleTheme(),
+  set: async () => {
+    toggleTheme();
+    if (user.value?.uid) {
+      await saveThemeToFirestore(user.value.uid);
+    }
+  },
 });
 </script>
 

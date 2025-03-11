@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '../services/firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { useAppTheme } from './useTheme';
 
 export function useAuth() {
   const user = ref(null);
@@ -17,6 +18,7 @@ export function useAuth() {
   const isPropietario = ref(false);
   const isInquilino = ref(false);
   const isPending = ref(false);
+  const { setThemeFromUserPreferences } = useAppTheme();
 
   // Actualizar último acceso
   const updateLastAccess = async (userId) => {
@@ -33,6 +35,7 @@ export function useAuth() {
 
   // Verificar rol del usuario
   const checkUserRole = async (userData) => {
+    console.log('checkUserRole');
     try {
       const userDoc = await getDoc(doc(db, 'usuarios', userData.uid));
 
@@ -46,6 +49,11 @@ export function useAuth() {
         isInquilino.value = userDataFromDb.rol === 'inquilino';
         isPending.value = userDataFromDb.rol === 'pending';
 
+        // Cargar preferencias del tema
+        if (userDataFromDb.settings) {
+          setThemeFromUserPreferences(userDataFromDb.settings);
+        }
+
         // Actualizar último acceso de forma asíncrona
         updateLastAccess(userDoc.id);
       } else {
@@ -58,6 +66,9 @@ export function useAuth() {
           photoURL: userData.photoURL,
           fechaRegistro: serverTimestamp(),
           ultimoAcceso: serverTimestamp(),
+          settings: {
+            theme: 'light', // tema por defecto para nuevos usuarios
+          },
         };
 
         // Crear usuario en la colección de usuarios
