@@ -8,13 +8,13 @@ const routes = [
     name: 'login',
     component: LoginView,
   },
-  /*   {
+  {
     path: '/',
     name: 'dashboard',
     component: () => import('../views/DashboardView.vue'),
     meta: { requiresAuth: true },
   },
-  {
+  /*   {
     path: '/propiedades',
     name: 'propiedades',
     component: () => import('../views/PropiedadesView.vue'),
@@ -65,17 +65,21 @@ const router = createRouter({
 });
 
 // Protección de rutas
-router.beforeEach(async (to, from, next) => {
+router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-  const user = auth.currentUser;
+  const currentUser = auth.currentUser;
 
-  if (requiresAuth && !user) {
-    next('/login');
-  } else if (to.path === '/login' && user) {
+  if (to.path === '/login' && currentUser) {
     next('/');
-  } else {
-    next();
+    return;
   }
+
+  if (requiresAuth && !currentUser) {
+    next('/login');
+    return;
+  }
+
+  next();
 });
 
 export default router;

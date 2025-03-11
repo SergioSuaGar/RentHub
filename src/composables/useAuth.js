@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth, googleProvider, db } from '../services/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -6,29 +6,38 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 export function useAuth() {
   const user = ref(null);
   const error = ref(null);
-  const loading = ref(false);
+  const loading = ref(true);
 
-  // Escuchar cambios en el estado de autenticación
-  onAuthStateChanged(auth, async (userData) => {
-    if (userData) {
-      const userDoc = await getDoc(doc(db, 'usuarios', userData.uid));
-      if (userDoc.exists()) {
-        user.value = { ...userDoc.data(), uid: userData.uid };
+  // Inicializar el estado de autenticación
+  onMounted(() => {
+    onAuthStateChanged(auth, async (userData) => {
+      loading.value = true;
+      if (userData) {
+        try {
+          const userDoc = await getDoc(doc(db, 'usuarios', userData.uid));
+          if (userDoc.exists()) {
+            user.value = { ...userDoc.data(), uid: userData.uid };
+          } else {
+            // Crear nuevo usuario con rol por defecto
+            const newUser = {
+              uid: userData.uid,
+              email: userData.email,
+              nombre: userData.displayName,
+              rol: 'propietario', // Por defecto, asignamos rol de propietario
+              photoURL: userData.photoURL,
+            };
+            await setDoc(doc(db, 'usuarios', userData.uid), newUser);
+            user.value = newUser;
+          }
+        } catch (e) {
+          console.error('Error al obtener datos del usuario:', e);
+          error.value = 'Error al cargar los datos del usuario';
+        }
       } else {
-        // Crear nuevo usuario con rol por defecto
-        const newUser = {
-          uid: userData.uid,
-          email: userData.email,
-          nombre: userData.displayName,
-          rol: 'propietario', // Por defecto, asignamos rol de propietario
-        };
-        await setDoc(doc(db, 'usuarios', userData.uid), newUser);
-        user.value = newUser;
+        user.value = null;
       }
-    } else {
-      user.value = null;
-    }
-    loading.value = false;
+      loading.value = false;
+    });
   });
 
   // Iniciar sesión con Google
@@ -38,7 +47,8 @@ export function useAuth() {
       error.value = null;
       await signInWithPopup(auth, googleProvider);
     } catch (e) {
-      error.value = e.message;
+      console.error('Error de autenticación:', e);
+      error.value = 'Error al iniciar sesión con Google';
       loading.value = false;
     }
   };
@@ -50,7 +60,7 @@ export function useAuth() {
       error.value = null;
       await signOut(auth);
     } catch (e) {
-      error.value = e.message;
+      error.value = 'Error al cerrar sesión';
     } finally {
       loading.value = false;
     }

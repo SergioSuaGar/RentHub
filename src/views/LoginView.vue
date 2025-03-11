@@ -31,18 +31,23 @@
 </template>
 
 <script setup>
+import { watch } from 'vue';
 import { useAuth } from '../composables/useAuth';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const { loginWithGoogle, error, loading, user } = useAuth();
 
+// Observar cambios en el usuario
+watch(user, (newUser) => {
+  if (newUser) {
+    router.push('/');
+  }
+});
+
 const handleLogin = async () => {
   try {
     await loginWithGoogle();
-    if (user.value) {
-      router.push('/');
-    }
   } catch (err) {
     console.error('Error al iniciar sesión:', err);
   }
