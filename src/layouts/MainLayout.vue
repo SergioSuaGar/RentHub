@@ -1,42 +1,42 @@
 <template>
   <v-app>
     <!-- Barra de navegación superior -->
-    <v-app-bar color="primary" density="compact">
-      <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
-      <v-app-bar-title>RentHub</v-app-bar-title>
-      <v-spacer></v-spacer>
-      <v-btn v-if="user" icon @click="handleLogout">
-        <v-icon>mdi-logout</v-icon>
-      </v-btn>
+    <v-app-bar elevation="1">
+      <template v-slot:prepend>
+        <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
+        <v-app-bar-title>RentHub</v-app-bar-title>
+      </template>
+
+      <template v-slot:append>
+        <UserMenu v-if="user" />
+      </template>
     </v-app-bar>
 
     <!-- Menú lateral -->
-    <v-navigation-drawer v-model="drawer" temporary>
-      <v-list>
-        <v-list-item
-          v-if="user"
-          :prepend-avatar="user.photoURL"
-          :title="user.nombre"
-          :subtitle="user.email"
-        ></v-list-item>
-        <v-divider></v-divider>
-
+    <v-navigation-drawer v-model="drawer" :rail="rail" permanent>
+      <v-list density="compact" nav>
         <!-- Menú para propietarios -->
         <template v-if="user?.rol === 'propietario'">
-          <v-list-item to="/dashboard" prepend-icon="mdi-view-dashboard"> Dashboard </v-list-item>
-          <v-list-item to="/propiedades" prepend-icon="mdi-home"> Propiedades </v-list-item>
-          <v-list-item to="/inquilinos" prepend-icon="mdi-account-group"> Inquilinos </v-list-item>
-          <v-list-item to="/pagos" prepend-icon="mdi-cash"> Pagos </v-list-item>
-          <v-list-item to="/documentos" prepend-icon="mdi-file-document"> Documentos </v-list-item>
+          <v-list-item
+            v-for="(item, i) in items"
+            :key="i"
+            :value="item"
+            :to="item.to"
+            :prepend-icon="item.icon"
+            :title="item.title"
+          ></v-list-item>
         </template>
 
         <!-- Menú para inquilinos -->
         <template v-if="user?.rol === 'inquilino'">
-          <v-list-item to="/mi-vivienda" prepend-icon="mdi-home"> Mi Vivienda </v-list-item>
-          <v-list-item to="/mis-pagos" prepend-icon="mdi-cash"> Mis Pagos </v-list-item>
-          <v-list-item to="/mis-documentos" prepend-icon="mdi-file-document">
-            Mis Documentos
-          </v-list-item>
+          <v-list-item
+            v-for="(item, i) in items"
+            :key="i"
+            :value="item"
+            :to="item.to"
+            :prepend-icon="item.icon"
+            :title="item.title"
+          ></v-list-item>
         </template>
       </v-list>
     </v-navigation-drawer>
@@ -52,17 +52,43 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuth } from '../composables/useAuth';
+import { useAuth } from '@/composables/useAuth';
+import UserMenu from '@/components/UserMenu.vue';
+import { useAppTheme } from '@/composables/useTheme';
 
-const drawer = ref(false);
-const router = useRouter();
-const { user, logout } = useAuth();
+const { user } = useAuth();
+const { isDark } = useAppTheme();
 
-const handleLogout = async () => {
-  await logout();
-  router.push('/login');
-};
+const drawer = ref(true);
+const rail = ref(false);
+
+const items = [
+  {
+    title: 'Dashboard',
+    icon: 'mdi-view-dashboard',
+    to: '/',
+  },
+  {
+    title: 'Propiedades',
+    icon: 'mdi-home',
+    to: '/propiedades',
+  },
+  {
+    title: 'Inquilinos',
+    icon: 'mdi-account-group',
+    to: '/inquilinos',
+  },
+  {
+    title: 'Pagos',
+    icon: 'mdi-cash',
+    to: '/pagos',
+  },
+  {
+    title: 'Documentos',
+    icon: 'mdi-file-document',
+    to: '/documentos',
+  },
+];
 </script>
 
 <style scoped>
@@ -70,5 +96,13 @@ const handleLogout = async () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 1rem;
+}
+
+.v-app-bar {
+  border-bottom: 1px solid rgb(var(--v-border-color)) !important;
+}
+
+.v-navigation-drawer {
+  border-right: 1px solid rgb(var(--v-border-color)) !important;
 }
 </style>

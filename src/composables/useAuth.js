@@ -1,5 +1,11 @@
 import { ref, onMounted } from 'vue';
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  getAuth,
+  GoogleAuthProvider,
+} from 'firebase/auth';
 import { auth, googleProvider, db } from '../services/firebase';
 import { doc, setDoc, getDoc, collection, query, where, serverTimestamp } from 'firebase/firestore';
 
@@ -86,10 +92,28 @@ export function useAuth() {
     try {
       loading.value = true;
       error.value = null;
-      await signInWithPopup(auth, googleProvider);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+
+      // Actualizar el usuario en Firestore
+      const userRef = doc(db, 'usuarios', result.user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        await setDoc(userRef, {
+          email: result.user.email,
+          nombre: result.user.displayName,
+          photoURL: result.user.photoURL,
+          createdAt: new Date(),
+        });
+      }
+
+      return result;
     } catch (e) {
-      console.error('Error de autenticación:', e);
-      error.value = 'Error al iniciar sesión con Google';
+      console.error('Error en login:', e);
+      error.value = e.message;
+      throw e;
+    } finally {
       loading.value = false;
     }
   };
@@ -100,8 +124,11 @@ export function useAuth() {
       loading.value = true;
       error.value = null;
       await signOut(auth);
+      user.value = null;
     } catch (e) {
-      error.value = 'Error al cerrar sesión';
+      console.error('Error en logout:', e);
+      error.value = e.message;
+      throw e;
     } finally {
       loading.value = false;
     }
