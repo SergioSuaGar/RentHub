@@ -7,7 +7,7 @@ import {
   GoogleAuthProvider,
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '../services/firebase';
-import { doc, setDoc, getDoc, collection, query, where, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 export function useAuth() {
   const user = ref(null);
@@ -16,6 +16,20 @@ export function useAuth() {
   const isAdmin = ref(false);
   const isPropietario = ref(false);
   const isInquilino = ref(false);
+  const isPending = ref(false);
+
+  // Actualizar último acceso
+  const updateLastAccess = async (userId) => {
+    try {
+      await setDoc(
+        doc(db, 'usuarios', userId),
+        { ultimoAcceso: serverTimestamp() },
+        { merge: true }
+      );
+    } catch (e) {
+      console.error('Error al actualizar último acceso:', e);
+    }
+  };
 
   // Verificar rol del usuario
   const checkUserRole = async (userData) => {
@@ -23,22 +37,17 @@ export function useAuth() {
       const userDoc = await getDoc(doc(db, 'usuarios', userData.uid));
 
       if (userDoc.exists()) {
-        const userData = userDoc.data();
-        user.value = { ...userData, uid: userDoc.id };
+        const userDataFromDb = userDoc.data();
+        user.value = { ...userDataFromDb, uid: userDoc.id };
 
         // Actualizar estados de roles
-        isAdmin.value = userData.rol === 'admin';
-        isPropietario.value = userData.rol === 'propietario';
-        isInquilino.value = userData.rol === 'inquilino';
+        isAdmin.value = userDataFromDb.rol === 'admin';
+        isPropietario.value = userDataFromDb.rol === 'propietario';
+        isInquilino.value = userDataFromDb.rol === 'inquilino';
+        isPending.value = userDataFromDb.rol === 'pending';
 
-        // Actualizar último acceso
-        await setDoc(
-          doc(db, 'usuarios', userDoc.id),
-          {
-            ultimoAcceso: serverTimestamp(),
-          },
-          { merge: true }
-        );
+        // Actualizar último acceso de forma asíncrona
+        updateLastAccess(userDoc.id);
       } else {
         // Nuevo usuario - crear registro pendiente
         const newUser = {
@@ -64,6 +73,7 @@ export function useAuth() {
         });
 
         user.value = newUser;
+        isPending.value = true;
       }
     } catch (e) {
       console.error('Error al verificar rol:', e);
@@ -82,6 +92,7 @@ export function useAuth() {
         isAdmin.value = false;
         isPropietario.value = false;
         isInquilino.value = false;
+        isPending.value = false;
       }
       loading.value = false;
     });
@@ -92,22 +103,8 @@ export function useAuth() {
     try {
       loading.value = true;
       error.value = null;
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-
-      // Actualizar el usuario en Firestore
-      const userRef = doc(db, 'usuarios', result.user.uid);
-      const userDoc = await getDoc(userRef);
-
-      if (!userDoc.exists()) {
-        await setDoc(userRef, {
-          email: result.user.email,
-          nombre: result.user.displayName,
-          photoURL: result.user.photoURL,
-          createdAt: new Date(),
-        });
-      }
-
+      const result = await signInWithPopup(auth, googleProvider);
+      await checkUserRole(result.user);
       return result;
     } catch (e) {
       console.error('Error en login:', e);
@@ -125,6 +122,10 @@ export function useAuth() {
       error.value = null;
       await signOut(auth);
       user.value = null;
+      isAdmin.value = false;
+      isPropietario.value = false;
+      isInquilino.value = false;
+      isPending.value = false;
     } catch (e) {
       console.error('Error en logout:', e);
       error.value = e.message;
@@ -141,6 +142,7 @@ export function useAuth() {
     isAdmin,
     isPropietario,
     isInquilino,
+    isPending,
     loginWithGoogle,
     logout,
   };

@@ -27,11 +27,24 @@ service cloud.firestore {
 
     // Reglas para la colección de usuarios
     match /usuarios/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin();
-      allow update: if request.auth.uid == userId && 
-        request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['nombre', 'photoURL', 'settings']);
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId && 
+        (
+          // Permitir actualización de ultimoAcceso
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoAcceso']) ||
+          // O permitir actualización de campos específicos del usuario
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'photoURL', 'settings'])
+        );
+      allow delete: if isAdmin();
+    }
+
+    // Reglas para roles pendientes
+    match /roles_pendientes/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // Reglas para propiedades
