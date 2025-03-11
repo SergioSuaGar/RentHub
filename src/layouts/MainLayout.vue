@@ -13,7 +13,7 @@
     </v-app-bar>
 
     <!-- Menú lateral -->
-    <v-navigation-drawer v-model="drawer" :rail="rail" permanent>
+    <v-navigation-drawer v-model="drawer" :rail="rail" temporary location="left" width="256">
       <v-list density="compact" nav>
         <!-- Menú para propietarios -->
         <template v-if="user?.rol === 'propietario'">
@@ -42,7 +42,7 @@
     </v-navigation-drawer>
 
     <!-- Contenido principal -->
-    <v-main class="bg-grey-lighten-3">
+    <v-main>
       <v-container fluid>
         <router-view></router-view>
       </v-container>
