@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 // Tu configuración de Firebase irá aquí
@@ -22,3 +22,11 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
+// Crear y exportar el provider de Google
+export const googleProvider = new GoogleAuthProvider();
+
+// Configuración por defecto para Google Auth
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+});
