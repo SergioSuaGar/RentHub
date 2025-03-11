@@ -74,7 +74,7 @@ const handleLogin = async () => {
 .login-container {
   width: 100%;
   height: 100%;
-  background: linear-gradient(145deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(145deg, #4a4e69 0%, #9a8c98 100%);
   position: relative;
   display: flex;
   align-items: center;
@@ -108,7 +108,7 @@ const handleLogin = async () => {
 }
 
 .brand-icon {
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(74, 78, 105, 0.1);
   width: 64px;
   height: 64px;
   border-radius: 16px;
@@ -147,7 +147,7 @@ const handleLogin = async () => {
 
 .login-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(74, 78, 105, 0.2) !important;
 }
 
 .terms-text {
