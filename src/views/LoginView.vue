@@ -28,8 +28,6 @@
             <v-icon start icon="mdi-google" class="me-2"></v-icon>
             Acceder con Google
           </v-btn>
-
-          <p class="terms-text">Al acceder, aceptas nuestros términos de uso</p>
         </div>
       </v-card>
     </div>
@@ -136,7 +134,7 @@ const handleLogin = async () => {
 }
 
 .login-button {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
   height: 48px !important;
   font-weight: 600 !important;
   letter-spacing: 0.5px;
@@ -148,13 +146,6 @@ const handleLogin = async () => {
 .login-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(74, 78, 105, 0.2) !important;
-}
-
-.terms-text {
-  text-align: center;
-  color: #666;
-  font-size: 0.875rem;
-  line-height: 1.5;
 }
 
 /* Estilos específicos para móvil */
@@ -179,10 +170,6 @@ const handleLogin = async () => {
 
   .login-button {
     height: 44px !important;
-  }
-
-  .terms-text {
-    font-size: 0.75rem;
   }
 }
 </style>
