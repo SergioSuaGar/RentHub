@@ -3,8 +3,11 @@
     <!-- Barra de navegación superior -->
     <v-app-bar elevation="1">
       <template v-slot:prepend>
-        <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
-        <v-app-bar-title>RentHub</v-app-bar-title>
+        <v-app-bar-nav-icon
+          v-if="user?.rol && user.rol !== 'pending'"
+          @click="drawer = !drawer"
+        ></v-app-bar-nav-icon>
+        <v-app-bar-title class="cursor-pointer" @click="navigateHome"> RentHub </v-app-bar-title>
       </template>
 
       <template v-slot:append>
@@ -13,7 +16,14 @@
     </v-app-bar>
 
     <!-- Menú lateral -->
-    <v-navigation-drawer v-model="drawer" :rail="rail" temporary location="left" width="256">
+    <v-navigation-drawer
+      v-if="user?.rol && user.rol !== 'pending'"
+      v-model="drawer"
+      :rail="!drawer"
+      temporary
+      location="left"
+      width="256"
+    >
       <v-list density="compact" nav>
         <!-- Menú para propietarios -->
         <template v-if="user?.rol === 'propietario'">
@@ -52,15 +62,24 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 import UserMenu from '@/components/UserMenu.vue';
 import { useAppTheme } from '@/composables/useTheme';
 
+const router = useRouter();
 const { user } = useAuth();
 const { isDark } = useAppTheme();
 
 const drawer = ref(true);
-const rail = ref(false);
+
+const navigateHome = () => {
+  if (user.value?.rol === 'pending') {
+    router.push('/pending');
+  } else {
+    router.push('/');
+  }
+};
 
 const items = [
   {
@@ -98,5 +117,9 @@ const items = [
 
 .v-navigation-drawer {
   border-right: 1px solid rgb(var(--v-border-color)) !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
 </style>
