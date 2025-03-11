@@ -1,6 +1,6 @@
 <template>
   <div class="user-menu">
-    <v-menu location="bottom end" :close-on-content-click="false">
+    <v-menu location="bottom end" :close-on-content-click="true">
       <template v-slot:activator="{ props }">
         <v-btn icon v-bind="props">
           <UserAvatar
