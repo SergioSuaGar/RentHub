@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Función para verificar si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Función para verificar si el usuario es admin
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+    
+    // Función para verificar si el usuario es propietario
+    function isPropietario() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'propietario';
+    }
+    
+    // Función para verificar si el usuario es inquilino
+    function isInquilino() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'inquilino';
+    }
+
+    // Reglas para la colección de usuarios
+    match /usuarios/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+      allow update: if request.auth.uid == userId && 
+        request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['nombre', 'photoURL', 'settings']);
+    }
+
+    // Reglas para propiedades
+    match /propiedades/{propiedadId} {
+      allow read: if isAuthenticated() && 
+        (isPropietario() || 
+        isAdmin() || 
+        (isInquilino() && resource.data.inquilinoId == request.auth.uid));
+      allow write: if isPropietario() || isAdmin();
+    }
+
+    // Reglas para inquilinos
+    match /inquilinos/{inquilinoId} {
+      allow read: if isAuthenticated() && 
+        (isPropietario() || 
+        isAdmin() || 
+        request.auth.uid == inquilinoId);
+      allow write: if isPropietario() || isAdmin();
+    }
+
+    // Reglas para pagos
+    match /pagos/{pagoId} {
+      allow read: if isAuthenticated() && 
+        (isPropietario() || 
+        isAdmin() || 
+        (isInquilino() && resource.data.inquilinoId == request.auth.uid));
+      allow create: if isAuthenticated();
+      allow update, delete: if isPropietario() || isAdmin();
+    }
+  }
+}
