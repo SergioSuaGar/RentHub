@@ -59,44 +59,48 @@ router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
   const requiredRoles = to.meta.roles;
 
-  return new Promise((resolve) => {
-    onAuthStateChanged(auth, async (user) => {
-      if (requiresAuth && !user) {
-        resolve(next('/login'));
-      } else if (!requiresAuth && user) {
-        resolve(next('/'));
-      } else if (user) {
-        // Verificar el rol del usuario
-        const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
-        const userData = userDoc.data();
+  // Si la ruta no requiere autenticación y no hay usuario, permitir
+  if (!requiresAuth) {
+    return next();
+  }
 
-        if (!userData || !userData.rol) {
-          if (to.path !== '/pending') {
-            resolve(next('/pending'));
-          } else {
-            resolve(next());
-          }
-        } else if (requiredRoles && !requiredRoles.includes(userData.rol)) {
-          // Si el usuario no tiene el rol requerido, redirigir según su rol
-          switch (userData.rol) {
-            case 'inquilino':
-              resolve(next('/mi-vivienda'));
-              break;
-            case 'propietario':
-            case 'admin':
-              resolve(next('/'));
-              break;
-            default:
-              resolve(next('/pending'));
-          }
-        } else {
-          resolve(next());
-        }
-      } else {
-        resolve(next());
+  // Esperar a que el estado de autenticación se estabilice
+  const user = auth.currentUser;
+
+  // Si la ruta requiere autenticación y no hay usuario
+  if (requiresAuth && !user) {
+    return next('/login');
+  }
+
+  // Si hay usuario, verificar roles
+  if (user) {
+    try {
+      const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+      const userData = userDoc.data();
+
+      if (!userData || !userData.rol) {
+        return to.path !== '/pending' ? next('/pending') : next();
       }
-    });
-  });
+
+      if (requiredRoles && !requiredRoles.includes(userData.rol)) {
+        // Redirigir según el rol
+        switch (userData.rol) {
+          case 'inquilino':
+            return next('/mi-vivienda');
+          case 'propietario':
+          case 'admin':
+            return next('/');
+          default:
+            return next('/pending');
+        }
+      }
+    } catch (error) {
+      console.error('Error al verificar rol:', error);
+      return next('/login');
+    }
+  }
+
+  return next();
 });
 
 export default router;
