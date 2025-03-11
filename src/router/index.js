@@ -1,85 +1,102 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { auth } from '../services/firebase';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import LoginView from '../views/LoginView.vue';
-
-const routes = [
-  {
-    path: '/login',
-    name: 'login',
-    component: LoginView,
-  },
-  {
-    path: '/',
-    name: 'dashboard',
-    component: () => import('../views/DashboardView.vue'),
-    meta: { requiresAuth: true },
-  },
-  /*   {
-    path: '/propiedades',
-    name: 'propiedades',
-    component: () => import('../views/PropiedadesView.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/inquilinos',
-    name: 'inquilinos',
-    component: () => import('../views/InquilinosView.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/pagos',
-    name: 'pagos',
-    component: () => import('../views/PagosView.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/documentos',
-    name: 'documentos',
-    component: () => import('../views/DocumentosView.vue'),
-    meta: { requiresAuth: true },
-  },
-  // Rutas para inquilinos
-  {
-    path: '/mi-vivienda',
-    name: 'mi-vivienda',
-    component: () => import('../views/inquilino/MiViviendaView.vue'),
-    meta: { requiresAuth: true, role: 'inquilino' },
-  },
-  {
-    path: '/mis-pagos',
-    name: 'mis-pagos',
-    component: () => import('../views/inquilino/MisPagosView.vue'),
-    meta: { requiresAuth: true, role: 'inquilino' },
-  },
-  {
-    path: '/mis-documentos',
-    name: 'mis-documentos',
-    component: () => import('../views/inquilino/MisDocumentosView.vue'),
-    meta: { requiresAuth: true, role: 'inquilino' },
-  }, */
-];
+import DashboardView from '../views/DashboardView.vue';
+import PendingView from '../views/PendingView.vue';
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes,
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/pending',
+      name: 'pending',
+      component: PendingView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/',
+      name: 'dashboard',
+      component: DashboardView,
+      meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
+    },
+    /*     {
+      path: '/admin/usuarios',
+      name: 'usuarios',
+      component: () => import('../views/admin/UsersView.vue'),
+      meta: { requiresAuth: true, roles: ['admin'] },
+    },
+    {
+      path: '/mi-vivienda',
+      name: 'mi-vivienda',
+      component: () => import('../views/tenant/MyPropertyView.vue'),
+      meta: { requiresAuth: true, roles: ['inquilino'] },
+    },
+    {
+      path: '/mis-pagos',
+      name: 'mis-pagos',
+      component: () => import('../views/tenant/MyPaymentsView.vue'),
+      meta: { requiresAuth: true, roles: ['inquilino'] },
+    },
+    {
+      path: '/mis-documentos',
+      name: 'mis-documentos',
+      component: () => import('../views/tenant/MyDocumentsView.vue'),
+      meta: { requiresAuth: true, roles: ['inquilino'] },
+    }, */
+  ],
 });
 
-// Protección de rutas
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  const auth = getAuth();
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-  const currentUser = auth.currentUser;
+  const requiredRoles = to.meta.roles;
 
-  if (to.path === '/login' && currentUser) {
-    next('/');
-    return;
-  }
+  return new Promise((resolve) => {
+    onAuthStateChanged(auth, async (user) => {
+      if (requiresAuth && !user) {
+        resolve(next('/login'));
+      } else if (!requiresAuth && user) {
+        resolve(next('/'));
+      } else if (user) {
+        // Verificar el rol del usuario
+        const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+        const userData = userDoc.data();
 
-  if (requiresAuth && !currentUser) {
-    next('/login');
-    return;
-  }
-
-  next();
+        if (!userData || !userData.rol) {
+          if (to.path !== '/pending') {
+            resolve(next('/pending'));
+          } else {
+            resolve(next());
+          }
+        } else if (requiredRoles && !requiredRoles.includes(userData.rol)) {
+          // Si el usuario no tiene el rol requerido, redirigir según su rol
+          switch (userData.rol) {
+            case 'inquilino':
+              resolve(next('/mi-vivienda'));
+              break;
+            case 'propietario':
+            case 'admin':
+              resolve(next('/'));
+              break;
+            default:
+              resolve(next('/pending'));
+          }
+        } else {
+          resolve(next());
+        }
+      } else {
+        resolve(next());
+      }
+    });
+  });
 });
 
 export default router;
