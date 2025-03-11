@@ -5,6 +5,7 @@ import { db } from '../services/firebase';
 import LoginView from '../views/LoginView.vue';
 import DashboardView from '../views/DashboardView.vue';
 import PendingView from '../views/PendingView.vue';
+import SettingsView from '../views/SettingsView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,6 +27,12 @@ const router = createRouter({
       name: 'dashboard',
       component: DashboardView,
       meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: SettingsView,
+      meta: { requiresAuth: true },
     },
     /*     {
       path: '/admin/usuarios',
