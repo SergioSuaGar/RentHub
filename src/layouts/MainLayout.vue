@@ -92,12 +92,6 @@ const items = [
 </script>
 
 <style scoped>
-.v-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
 .v-app-bar {
   border-bottom: 1px solid rgb(var(--v-border-color)) !important;
 }
