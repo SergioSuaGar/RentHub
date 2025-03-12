@@ -1,8 +1,8 @@
 <template>
   <div class="facturas-container">
     <v-card>
-      <v-toolbar flat color="primary" density="compact">
-        <v-toolbar-title class="text-white">Facturas</v-toolbar-title>
+      <v-toolbar flat color="primary" class="toolbar-custom">
+        <v-toolbar-title class="text-white toolbar-title">Facturas</v-toolbar-title>
         <v-spacer></v-spacer>
         <v-btn
           color="white"
@@ -10,8 +10,10 @@
           prepend-icon="mdi-plus"
           @click="openDialog()"
           :title="'Añadir una nueva factura al sistema'"
+          class="toolbar-btn"
         >
-          Nueva Factura
+          <span class="d-none d-sm-block">Nueva Factura</span>
+          <span class="d-sm-none">Nueva</span>
         </v-btn>
       </v-toolbar>
 
@@ -516,6 +518,28 @@ onMounted(async () => {
 <style scoped>
 .facturas-container {
   padding: 1rem;
+}
+
+.toolbar-custom {
+  min-height: 56px !important;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toolbar-title {
+  font-size: 1.25rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.toolbar-btn {
+  flex-shrink: 0;
 }
 
 .v-data-table {

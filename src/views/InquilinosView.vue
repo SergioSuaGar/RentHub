@@ -1,17 +1,18 @@
 <template>
   <div class="inquilinos-container">
     <v-card>
-      <v-toolbar flat color="primary" density="compact">
-        <v-toolbar-title class="text-white">Inquilinos</v-toolbar-title>
-        <v-spacer></v-spacer>
+      <v-toolbar flat color="primary" class="toolbar-custom">
+        <v-toolbar-title class="text-white toolbar-title">Inquilinos</v-toolbar-title>
         <v-btn
           color="white"
           variant="text"
           prepend-icon="mdi-plus"
           @click="openDialog()"
           :title="'Añadir un nuevo inquilino al sistema'"
+          class="toolbar-btn"
         >
-          Nuevo Inquilino
+          <span class="d-none d-sm-block">Nuevo Inquilino</span>
+          <span class="d-sm-none">Nuevo</span>
         </v-btn>
       </v-toolbar>
 
@@ -483,6 +484,28 @@ onMounted(async () => {
 <style scoped>
 .inquilinos-container {
   padding: 1rem;
+}
+
+.toolbar-custom {
+  min-height: 56px !important;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toolbar-title {
+  font-size: 1.25rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.toolbar-btn {
+  flex-shrink: 0;
 }
 
 .v-data-table {
