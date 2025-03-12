@@ -158,6 +158,19 @@
                     validate-on-blur
                   ></v-text-field>
                 </v-col>
+                <v-col cols="12" sm="6">
+                  <v-select
+                    v-model="editedItem.propiedadId"
+                    :items="propiedades"
+                    item-title="nombre"
+                    item-value="id"
+                    label="Propiedad"
+                    :hint="'Selecciona una propiedad para el inquilino'"
+                    persistent-hint
+                    clearable
+                    @update:model-value="updatePropiedadNombre"
+                  ></v-select>
+                </v-col>
               </v-row>
             </v-container>
           </v-form>
@@ -231,6 +244,7 @@ const page = ref(1);
 const itemsPerPage = ref(10);
 const totalItems = ref(0);
 const inquilinos = ref([]);
+const propiedades = ref([]);
 
 // Variables para el diálogo
 const dialog = ref(false);
@@ -242,6 +256,8 @@ const editedItem = ref({
   email: '',
   dni: '',
   estado: true,
+  propiedadId: null,
+  propiedadNombre: '',
 });
 const defaultItem = {
   nombre: '',
@@ -249,6 +265,8 @@ const defaultItem = {
   email: '',
   dni: '',
   estado: true,
+  propiedadId: null,
+  propiedadNombre: '',
 };
 
 // Headers de la tabla
@@ -257,6 +275,7 @@ const headers = [
   { title: 'Apellidos', key: 'apellidos', align: 'start', sortable: true },
   { title: 'Email', key: 'email', align: 'start', sortable: true },
   { title: 'DNI', key: 'dni', align: 'start', sortable: true },
+  { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
   { title: 'Estado', key: 'estado', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
 ];
@@ -295,17 +314,37 @@ const formTitle = computed(() => {
   return editedIndex.value === -1 ? 'Nuevo Inquilino' : 'Editar Inquilino';
 });
 
-// Cargar inquilinos
+// Cargar propiedades activas
+const loadPropiedades = async () => {
+  try {
+    const q = query(collection(db, 'propiedades'), where('estado', '==', true));
+    const querySnapshot = await getDocs(q);
+    propiedades.value = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error('Error al cargar propiedades:', error);
+  }
+};
+
+// Modificar loadInquilinos para incluir los nombres de las propiedades
 const loadInquilinos = async () => {
   loading.value = true;
   try {
     const q = query(collection(db, 'inquilinos'));
     const querySnapshot = await getDocs(q);
-    inquilinos.value = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      estado: doc.data().estado ?? true,
-    }));
+    inquilinos.value = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      // Buscar el nombre de la propiedad si existe
+      const propiedad = propiedades.value.find((p) => p.id === data.propiedadId);
+      return {
+        id: doc.id,
+        ...data,
+        estado: data.estado ?? true,
+        propiedadNombre: propiedad ? propiedad.nombre : '',
+      };
+    });
     totalItems.value = inquilinos.value.length;
   } catch (error) {
     console.error('Error al cargar inquilinos:', error);
@@ -428,9 +467,16 @@ const toggleEstado = async (item) => {
   }
 };
 
-// Cargar datos iniciales
-onMounted(() => {
-  loadInquilinos();
+// Actualizar el nombre de la propiedad cuando se seleccione
+const updatePropiedadNombre = (propiedadId) => {
+  const propiedad = propiedades.value.find((p) => p.id === propiedadId);
+  editedItem.value.propiedadNombre = propiedad ? propiedad.nombre : '';
+};
+
+// Modificar onMounted para cargar también las propiedades
+onMounted(async () => {
+  await loadPropiedades();
+  await loadInquilinos();
 });
 </script>
 
