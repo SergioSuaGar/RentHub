@@ -6,6 +6,7 @@ import LoginView from '../views/LoginView.vue';
 import DashboardView from '../views/DashboardView.vue';
 import PendingView from '../views/PendingView.vue';
 import SettingsView from '../views/SettingsView.vue';
+import InquilinosView from '../views/InquilinosView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -33,6 +34,12 @@ const router = createRouter({
       name: 'settings',
       component: SettingsView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/inquilinos',
+      name: 'inquilinos',
+      component: InquilinosView,
+      meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
     },
     /*     {
       path: '/admin/usuarios',
