@@ -33,6 +33,20 @@ export interface Pago {
   estado: 'pendiente' | 'pagado';
 }
 
+export interface Factura {
+  id: string;
+  tipo: 'Luz' | 'Agua' | 'Agua caliente';
+  propiedadId: string;
+  propiedadNombre: string;
+  importe: number;
+  fechaInicio: string;
+  fechaFin: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
 export interface Usuario {
   uid: string;
   email: string;

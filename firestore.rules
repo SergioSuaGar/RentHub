@@ -49,10 +49,11 @@ service cloud.firestore {
 
     // Reglas para propiedades
     match /propiedades/{propiedadId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+      allow read: if isAuthenticated() && 
+        (isPropietario() || 
+        isAdmin() || 
+        isInquilino());
+      allow write: if isPropietario() || isAdmin();
     }
 
     // Reglas para inquilinos
@@ -61,6 +62,15 @@ service cloud.firestore {
         (isPropietario() || 
         isAdmin() || 
         request.auth.uid == inquilinoId);
+      allow write: if isPropietario() || isAdmin();
+    }
+
+    // Reglas para facturas
+    match /facturas/{facturaId} {
+      allow read: if isAuthenticated() && 
+        (isPropietario() || 
+        isAdmin() || 
+        isInquilino());
       allow write: if isPropietario() || isAdmin();
     }
 

@@ -88,14 +88,19 @@ const items = [
     to: '/',
   },
   {
+    title: 'Inquilinos',
+    icon: 'mdi-account-group',
+    to: '/inquilinos',
+  },
+  {
     title: 'Propiedades',
     icon: 'mdi-home',
     to: '/propiedades',
   },
   {
-    title: 'Inquilinos',
-    icon: 'mdi-account-group',
-    to: '/inquilinos',
+    title: 'Facturas',
+    icon: 'mdi-file-document-multiple',
+    to: '/facturas',
   },
   {
     title: 'Pagos',

@@ -7,6 +7,7 @@ import DashboardView from '../views/DashboardView.vue';
 import PendingView from '../views/PendingView.vue';
 import SettingsView from '../views/SettingsView.vue';
 import InquilinosView from '../views/InquilinosView.vue';
+import FacturasView from '../views/FacturasView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -42,13 +43,16 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
     },
     {
+      path: '/facturas',
+      name: 'facturas',
+      component: FacturasView,
+      meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
+    },
+    {
       path: '/propiedades',
       name: 'propiedades',
       component: () => import('@/views/PropiedadesView.vue'),
-      meta: {
-        requiresAuth: true,
-        title: 'Propiedades',
-      },
+      meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
     },
     /*     {
       path: '/admin/usuarios',
