@@ -58,6 +58,15 @@
             {{ formatDate(item.fechaFin) }}
           </template>
 
+          <!-- Columna de estado -->
+          <template #[`item.estado`]="{ item }">
+            <v-chip
+              :color="item.estado === 'pagada' ? 'success' : 'warning'"
+              :text="item.estado === 'pagada' ? 'Pagada' : 'Pendiente'"
+              size="small"
+            ></v-chip>
+          </template>
+
           <!-- Columna de acciones -->
           <template #[`item.actions`]="{ item }">
             <v-btn
@@ -79,6 +88,16 @@
               :title="'Eliminar factura del sistema'"
             >
               <v-icon>mdi-delete</v-icon>
+            </v-btn>
+            <v-btn
+              icon
+              variant="text"
+              size="small"
+              :color="item.estado === 'pagada' ? 'warning' : 'success'"
+              @click="toggleEstado(item)"
+              :title="item.estado === 'pagada' ? 'Marcar como pendiente' : 'Marcar como pagada'"
+            >
+              <v-icon>{{ item.estado === 'pagada' ? 'mdi-cash-remove' : 'mdi-cash-check' }}</v-icon>
             </v-btn>
           </template>
         </v-data-table>
@@ -239,19 +258,21 @@ const dialogDelete = ref(false);
 const editedIndex = ref(-1);
 const editedItem = ref({
   tipo: '',
-  propiedadId: null,
+  propiedadId: '',
   propiedadNombre: '',
   importe: '',
   fechaInicio: '',
   fechaFin: '',
+  estado: 'pendiente',
 });
 const defaultItem = {
   tipo: '',
-  propiedadId: null,
+  propiedadId: '',
   propiedadNombre: '',
   importe: '',
   fechaInicio: '',
   fechaFin: '',
+  estado: 'pendiente',
 };
 
 // Headers de la tabla
@@ -261,6 +282,7 @@ const headers = [
   { title: 'Importe', key: 'importe', align: 'end', sortable: true },
   { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
   { title: 'Fecha Fin', key: 'fechaFin', align: 'start', sortable: true },
+  { title: 'Estado', key: 'estado', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
 ];
 
@@ -402,8 +424,14 @@ const saveFactura = async () => {
   try {
     saving.value = true;
     const itemData = {
-      ...editedItem.value,
-      updatedAt: new Date(),
+      tipo: editedItem.value.tipo,
+      propiedadId: editedItem.value.propiedadId,
+      propiedadNombre: editedItem.value.propiedadNombre,
+      importe: editedItem.value.importe.replace(',', '.'),
+      fechaInicio: new Date(editedItem.value.fechaInicio).toISOString(),
+      fechaFin: new Date(editedItem.value.fechaFin).toISOString(),
+      estado: editedItem.value.estado || 'pendiente',
+      updatedAt: new Date().toISOString(),
       updatedBy: user.value.uid,
     };
 
@@ -411,7 +439,7 @@ const saveFactura = async () => {
       await setDoc(doc(db, 'facturas', editedItem.value.id), itemData, { merge: true });
       Object.assign(facturas.value[editedIndex.value], itemData);
     } else {
-      itemData.createdAt = new Date();
+      itemData.createdAt = new Date().toISOString();
       itemData.createdBy = user.value.uid;
       const docRef = doc(collection(db, 'facturas'));
       await setDoc(docRef, itemData);
@@ -457,6 +485,25 @@ const deleteItemConfirm = async () => {
 const updatePropiedadNombre = (propiedadId) => {
   const propiedad = propiedades.value.find((p) => p.id === propiedadId);
   editedItem.value.propiedadNombre = propiedad ? propiedad.nombre : '';
+};
+
+// Añadir la función para cambiar el estado
+const toggleEstado = async (item) => {
+  try {
+    const newEstado = item.estado === 'pagada' ? 'pendiente' : 'pagada';
+    await setDoc(
+      doc(db, 'facturas', item.id),
+      {
+        estado: newEstado,
+        updatedAt: new Date().toISOString(),
+        updatedBy: user.value.uid,
+      },
+      { merge: true }
+    );
+    item.estado = newEstado;
+  } catch (error) {
+    console.error('Error al cambiar estado:', error);
+  }
 };
 
 // Cargar datos iniciales

@@ -41,6 +41,7 @@ export interface Factura {
   importe: number;
   fechaInicio: string;
   fechaFin: string;
+  estado: 'pendiente' | 'pagada';
   createdAt: string;
   createdBy: string;
   updatedAt: string;
