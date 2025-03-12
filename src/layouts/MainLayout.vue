@@ -26,7 +26,7 @@
     >
       <v-list density="compact" nav>
         <!-- Menú para propietarios -->
-        <template v-if="user?.rol === 'propietario'">
+        <template v-if="user?.rol === 'propietario' || user?.rol === 'admin'">
           <v-list-item
             v-for="(item, i) in items"
             :key="i"

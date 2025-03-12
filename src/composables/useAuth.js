@@ -35,7 +35,6 @@ export function useAuth() {
 
   // Verificar rol del usuario
   const checkUserRole = async (userData) => {
-    console.log('checkUserRole');
     try {
       const userDoc = await getDoc(doc(db, 'usuarios', userData.uid));
 
