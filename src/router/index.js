@@ -41,6 +41,15 @@ const router = createRouter({
       component: InquilinosView,
       meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
     },
+    {
+      path: '/propiedades',
+      name: 'propiedades',
+      component: () => import('@/views/PropiedadesView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Propiedades',
+      },
+    },
     /*     {
       path: '/admin/usuarios',
       name: 'usuarios',

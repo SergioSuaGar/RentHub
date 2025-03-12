@@ -49,11 +49,10 @@ service cloud.firestore {
 
     // Reglas para propiedades
     match /propiedades/{propiedadId} {
-      allow read: if isAuthenticated() && 
-        (isPropietario() || 
-        isAdmin() || 
-        (isInquilino() && resource.data.inquilinoId == request.auth.uid));
-      allow write: if isPropietario() || isAdmin();
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
     }
 
     // Reglas para inquilinos
