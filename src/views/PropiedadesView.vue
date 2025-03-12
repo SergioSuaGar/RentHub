@@ -45,6 +45,11 @@
             </v-toolbar>
           </template>
 
+          <!-- Columna de inquilinos activos -->
+          <template #[`item.inquilinosActivos`]="{ item }">
+            {{ item.inquilinosActivos }}
+          </template>
+
           <!-- Columna de estado -->
           <template #[`item.estado`]="{ item }">
             <v-chip
@@ -179,7 +184,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import { collection, query, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, setDoc, deleteDoc, where } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
 
@@ -192,6 +197,7 @@ const page = ref(1);
 const itemsPerPage = ref(10);
 const totalItems = ref(0);
 const propiedades = ref([]);
+const inquilinos = ref([]);
 
 // Variables para el diálogo
 const dialog = ref(false);
@@ -209,6 +215,7 @@ const defaultItem = {
 // Headers de la tabla
 const headers = [
   { title: 'Nombre', key: 'nombre', align: 'start', sortable: true },
+  { title: 'Inquilinos Activos', key: 'inquilinosActivos', align: 'start', sortable: false },
   { title: 'Estado', key: 'estado', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
 ];
@@ -228,17 +235,40 @@ const formTitle = computed(() => {
   return editedIndex.value === -1 ? 'Nueva Propiedad' : 'Editar Propiedad';
 });
 
+// Cargar inquilinos activos
+const loadInquilinos = async () => {
+  try {
+    const q = query(collection(db, 'inquilinos'), where('estado', '==', true));
+    const querySnapshot = await getDocs(q);
+    inquilinos.value = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error('Error al cargar inquilinos:', error);
+  }
+};
+
 // Cargar propiedades
 const loadPropiedades = async () => {
   loading.value = true;
   try {
     const q = query(collection(db, 'propiedades'));
     const querySnapshot = await getDocs(q);
-    propiedades.value = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      estado: doc.data().estado ?? true,
-    }));
+    propiedades.value = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      // Filtrar inquilinos activos asociados a esta propiedad
+      const inquilinosActivos = inquilinos.value
+        .filter((i) => i.propiedadId === doc.id)
+        .map((i) => `${i.nombre} ${i.apellidos}`);
+
+      return {
+        id: doc.id,
+        ...data,
+        estado: data.estado ?? true,
+        inquilinosActivos: inquilinosActivos.join(', ') || 'Sin inquilinos',
+      };
+    });
     totalItems.value = propiedades.value.length;
   } catch (error) {
     console.error('Error al cargar propiedades:', error);
@@ -313,6 +343,8 @@ const savePropiedad = async () => {
       totalItems.value++;
     }
     closeDialog();
+    // Recargar datos para actualizar la lista de inquilinos
+    await loadInquilinos();
     await loadPropiedades();
   } catch (error) {
     console.error('Error al guardar:', error);
@@ -341,6 +373,9 @@ const deleteItemConfirm = async () => {
     await deleteDoc(doc(db, 'propiedades', editedItem.value.id));
     propiedades.value.splice(editedIndex.value, 1);
     closeDelete();
+    // Recargar datos para actualizar la lista de inquilinos
+    await loadInquilinos();
+    await loadPropiedades();
   } catch (error) {
     console.error('Error al eliminar:', error);
   }
@@ -356,14 +391,18 @@ const toggleEstado = async (item) => {
       { merge: true }
     );
     item.estado = newEstado;
+    // Recargar datos para actualizar la lista de inquilinos
+    await loadInquilinos();
+    await loadPropiedades();
   } catch (error) {
     console.error('Error al cambiar estado:', error);
   }
 };
 
 // Cargar datos iniciales
-onMounted(() => {
-  loadPropiedades();
+onMounted(async () => {
+  await loadInquilinos();
+  await loadPropiedades();
 });
 </script>
 
