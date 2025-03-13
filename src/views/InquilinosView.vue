@@ -79,7 +79,7 @@
               @click="confirmDelete(item)"
               :title="'Eliminar inquilino del sistema'"
             >
-              <v-icon>mdi-delete</v-icon>
+              <v-icon>mdi-trash-can-outline</v-icon>
             </v-btn>
             <v-btn
               icon

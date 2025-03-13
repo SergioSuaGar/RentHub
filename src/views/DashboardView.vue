@@ -1,204 +1,214 @@
 <template>
-  <div>
-    <v-row>
-      <!-- Resumen de propiedades -->
-      <v-col cols="12" md="6" lg="3">
-        <v-card>
-          <v-card-item>
+  <div class="dashboard-container">
+    <v-card>
+      <v-toolbar flat color="primary" class="toolbar-custom">
+        <v-toolbar-title class="text-white toolbar-title">Dashboard</v-toolbar-title>
+      </v-toolbar>
+
+      <v-card-text>
+        <!-- Resumen de propiedades -->
+        <v-row>
+          <v-col cols="12" md="6" lg="3">
+            <v-card>
+              <v-card-item>
+                <v-card-title>
+                  <v-icon icon="mdi-home" class="me-2" color="primary"></v-icon>
+                  Propiedades
+                </v-card-title>
+                <v-card-subtitle class="mt-2">
+                  <span class="text-h4">{{ propiedadesActivas.length }}</span>
+                  <span class="text-caption ms-2">Activas</span>
+                </v-card-subtitle>
+              </v-card-item>
+            </v-card>
+          </v-col>
+
+          <!-- Resumen de inquilinos -->
+          <v-col cols="12" md="6" lg="3">
+            <v-card>
+              <v-card-item>
+                <v-card-title>
+                  <v-icon icon="mdi-account-group" class="me-2" color="info"></v-icon>
+                  Inquilinos
+                </v-card-title>
+                <v-card-subtitle class="mt-2">
+                  <span class="text-h4">{{ inquilinosActivos.length }}</span>
+                  <span class="text-caption ms-2">Activos</span>
+                </v-card-subtitle>
+              </v-card-item>
+            </v-card>
+          </v-col>
+
+          <!-- Resumen de facturas -->
+          <v-col cols="12" md="6" lg="3">
+            <v-card>
+              <v-card-item>
+                <v-card-title>
+                  <v-icon icon="mdi-cash" class="me-2" color="success"></v-icon>
+                  Facturas Mes
+                </v-card-title>
+                <v-card-subtitle class="mt-2">
+                  <span class="text-h6">{{ formatCurrency(totalCobradoMes) }}</span>
+                  <span class="text-caption d-block"
+                    >de {{ formatCurrency(totalEsperadoMes) }}</span
+                  >
+                  <v-progress-linear
+                    :model-value="(totalCobradoMes / totalEsperadoMes) * 100"
+                    color="success"
+                    height="4"
+                    class="mt-2"
+                  ></v-progress-linear>
+                </v-card-subtitle>
+              </v-card-item>
+            </v-card>
+          </v-col>
+
+          <!-- Facturas pendientes -->
+          <v-col cols="12" md="6" lg="3">
+            <v-card>
+              <v-card-item>
+                <v-card-title>
+                  <v-icon icon="mdi-file-document-alert" class="me-2" color="warning"></v-icon>
+                  Pendientes
+                </v-card-title>
+                <v-card-subtitle class="mt-2">
+                  <span class="text-h4">{{ facturasPendientes.length }}</span>
+                  <span class="text-caption ms-2">Por cobrar</span>
+                </v-card-subtitle>
+              </v-card-item>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <!-- Actividad reciente -->
+        <v-row class="mt-4">
+          <!-- Acciones rápidas -->
+          <v-col cols="12" md="4">
+            <v-card>
+              <v-card-title class="d-flex align-center">
+                <v-icon icon="mdi-lightning-bolt" class="me-2"></v-icon>
+                Acciones Rápidas
+              </v-card-title>
+              <v-card-text>
+                <v-list>
+                  <v-list-item
+                    prepend-icon="mdi-file-document-plus"
+                    title="Registrar Factura"
+                    @click="openDialog"
+                  ></v-list-item>
+                </v-list>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <!-- Diálogo para crear factura -->
+        <v-dialog v-model="dialog" max-width="600px">
+          <v-card>
             <v-card-title>
-              <v-icon icon="mdi-home" class="me-2" color="primary"></v-icon>
-              Propiedades
+              <span class="text-h5">Nueva Factura</span>
             </v-card-title>
-            <v-card-subtitle class="mt-2">
-              <span class="text-h4">{{ propiedadesActivas.length }}</span>
-              <span class="text-caption ms-2">Activas</span>
-            </v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
 
-      <!-- Resumen de inquilinos -->
-      <v-col cols="12" md="6" lg="3">
-        <v-card>
-          <v-card-item>
-            <v-card-title>
-              <v-icon icon="mdi-account-group" class="me-2" color="info"></v-icon>
-              Inquilinos
-            </v-card-title>
-            <v-card-subtitle class="mt-2">
-              <span class="text-h4">{{ inquilinosActivos.length }}</span>
-              <span class="text-caption ms-2">Activos</span>
-            </v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
+            <v-card-text>
+              <v-form ref="form" v-model="formValid" @submit.prevent="handleSubmit" lazy-validation>
+                <v-container>
+                  <v-row>
+                    <v-col cols="12" sm="6">
+                      <v-select
+                        v-model="editedItem.tipo"
+                        :items="tiposFactura"
+                        label="Tipo de Factura *"
+                        :rules="[rules.required]"
+                        required
+                        :hint="'Selecciona el tipo de factura'"
+                        persistent-hint
+                      ></v-select>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-select
+                        v-model="editedItem.propiedadId"
+                        :items="propiedades"
+                        item-title="nombre"
+                        item-value="id"
+                        label="Propiedad *"
+                        :rules="[rules.required]"
+                        required
+                        :hint="'Selecciona una propiedad'"
+                        persistent-hint
+                        @update:model-value="updatePropiedadNombre"
+                      ></v-select>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        v-model="editedItem.importe"
+                        label="Importe *"
+                        :rules="[rules.required, rules.numeric]"
+                        required
+                        :hint="'Introduce el importe (usar coma para decimales)'"
+                        persistent-hint
+                        @input="formatImporte"
+                        validate-on-blur
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        type="date"
+                        v-model="editedItem.fechaInicio"
+                        label="Fecha Inicio *"
+                        :rules="[rules.required]"
+                        required
+                        :hint="'Selecciona la fecha de inicio'"
+                        persistent-hint
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        type="date"
+                        v-model="editedItem.fechaFin"
+                        label="Fecha Fin *"
+                        :rules="[rules.required, rules.fechaFinValida]"
+                        required
+                        :hint="'Selecciona la fecha de fin'"
+                        persistent-hint
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12">
+                      <v-checkbox
+                        v-model="registrarOtro"
+                        label="Registrar otra factura después de guardar"
+                        color="primary"
+                      ></v-checkbox>
+                    </v-col>
+                  </v-row>
+                </v-container>
+              </v-form>
+            </v-card-text>
 
-      <!-- Resumen de facturas -->
-      <v-col cols="12" md="6" lg="3">
-        <v-card>
-          <v-card-item>
-            <v-card-title>
-              <v-icon icon="mdi-cash" class="me-2" color="success"></v-icon>
-              Facturas Mes
-            </v-card-title>
-            <v-card-subtitle class="mt-2">
-              <span class="text-h6">{{ formatCurrency(totalCobradoMes) }}</span>
-              <span class="text-caption d-block">de {{ formatCurrency(totalEsperadoMes) }}</span>
-              <v-progress-linear
-                :model-value="(totalCobradoMes / totalEsperadoMes) * 100"
-                color="success"
-                height="4"
-                class="mt-2"
-              ></v-progress-linear>
-            </v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-
-      <!-- Facturas pendientes -->
-      <v-col cols="12" md="6" lg="3">
-        <v-card>
-          <v-card-item>
-            <v-card-title>
-              <v-icon icon="mdi-file-document-alert" class="me-2" color="warning"></v-icon>
-              Pendientes
-            </v-card-title>
-            <v-card-subtitle class="mt-2">
-              <span class="text-h4">{{ facturasPendientes.length }}</span>
-              <span class="text-caption ms-2">Por cobrar</span>
-            </v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- Actividad reciente -->
-    <v-row class="mt-4">
-      <!-- Acciones rápidas -->
-      <v-col cols="12" md="4">
-        <v-card>
-          <v-card-title class="d-flex align-center">
-            <v-icon icon="mdi-lightning-bolt" class="me-2"></v-icon>
-            Acciones Rápidas
-          </v-card-title>
-          <v-card-text>
-            <v-list>
-              <v-list-item
-                prepend-icon="mdi-file-document-plus"
-                title="Registrar Factura"
-                @click="openDialog"
-              ></v-list-item>
-            </v-list>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- Diálogo para crear factura -->
-    <v-dialog v-model="dialog" max-width="600px">
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">Nueva Factura</span>
-        </v-card-title>
-
-        <v-card-text>
-          <v-form ref="form" v-model="formValid" @submit.prevent="handleSubmit" lazy-validation>
-            <v-container>
-              <v-row>
-                <v-col cols="12" sm="6">
-                  <v-select
-                    v-model="editedItem.tipo"
-                    :items="tiposFactura"
-                    label="Tipo de Factura *"
-                    :rules="[rules.required]"
-                    required
-                    :hint="'Selecciona el tipo de factura'"
-                    persistent-hint
-                  ></v-select>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-select
-                    v-model="editedItem.propiedadId"
-                    :items="propiedades"
-                    item-title="nombre"
-                    item-value="id"
-                    label="Propiedad *"
-                    :rules="[rules.required]"
-                    required
-                    :hint="'Selecciona una propiedad'"
-                    persistent-hint
-                    @update:model-value="updatePropiedadNombre"
-                  ></v-select>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    v-model="editedItem.importe"
-                    label="Importe *"
-                    :rules="[rules.required, rules.numeric]"
-                    required
-                    :hint="'Introduce el importe (usar coma para decimales)'"
-                    persistent-hint
-                    @input="formatImporte"
-                    validate-on-blur
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    type="date"
-                    v-model="editedItem.fechaInicio"
-                    label="Fecha Inicio *"
-                    :rules="[rules.required]"
-                    required
-                    :hint="'Selecciona la fecha de inicio'"
-                    persistent-hint
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    type="date"
-                    v-model="editedItem.fechaFin"
-                    label="Fecha Fin *"
-                    :rules="[rules.required, rules.fechaFinValida]"
-                    required
-                    :hint="'Selecciona la fecha de fin'"
-                    persistent-hint
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-checkbox
-                    v-model="registrarOtro"
-                    label="Registrar otra factura después de guardar"
-                    color="primary"
-                  ></v-checkbox>
-                </v-col>
-              </v-row>
-            </v-container>
-          </v-form>
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-            color="secondary"
-            variant="text"
-            @click="closeDialog"
-            :title="'Cancelar la operación actual'"
-          >
-            Cancelar
-          </v-btn>
-          <v-btn
-            color="primary"
-            variant="text"
-            @click="handleSubmit"
-            :loading="saving"
-            :disabled="!formValid || saving"
-            :title="'Guardar los cambios realizados'"
-          >
-            Guardar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                color="secondary"
+                variant="text"
+                @click="closeDialog"
+                :title="'Cancelar la operación actual'"
+              >
+                Cancelar
+              </v-btn>
+              <v-btn
+                color="primary"
+                variant="text"
+                @click="handleSubmit"
+                :loading="saving"
+                :disabled="!formValid || saving"
+                :title="'Guardar los cambios realizados'"
+              >
+                Guardar
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-card-text>
+    </v-card>
   </div>
 </template>
 
@@ -418,3 +428,27 @@ onMounted(async () => {
   await loadData();
 });
 </script>
+
+<style scoped>
+.dashboard-container {
+  padding: 1rem;
+}
+
+.toolbar-custom {
+  min-height: 56px !important;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toolbar-title {
+  font-size: 1.25rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+</style>

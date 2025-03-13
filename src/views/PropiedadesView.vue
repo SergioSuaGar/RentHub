@@ -84,7 +84,7 @@
               @click="confirmDelete(item)"
               :title="'Eliminar propiedad del sistema'"
             >
-              <v-icon>mdi-delete</v-icon>
+              <v-icon>mdi-trash-can-outline</v-icon>
             </v-btn>
             <v-btn
               icon
