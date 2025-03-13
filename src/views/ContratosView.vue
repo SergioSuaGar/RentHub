@@ -430,9 +430,9 @@ const formatDateShort = (timestamp) => {
   if (timestamp.seconds) {
     const date = new Date(timestamp.seconds * 1000);
     return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
     });
   }
 
@@ -440,9 +440,9 @@ const formatDateShort = (timestamp) => {
   if (typeof timestamp === 'string') {
     const date = new Date(timestamp);
     return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
     });
   }
 
