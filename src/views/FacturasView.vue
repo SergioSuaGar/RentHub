@@ -56,11 +56,11 @@
 
           <!-- Columna de fechas -->
           <template #[`item.fechaInicio`]="{ item }">
-            {{ formatDate(item.fechaInicio) }}
+            {{ formatDateShort(item.fechaInicio) }}
           </template>
 
           <template #[`item.fechaFin`]="{ item }">
-            {{ formatDate(item.fechaFin) }}
+            {{ formatDateShort(item.fechaFin) }}
           </template>
 
           <!-- Columna de estado -->
@@ -425,6 +425,33 @@ const formatDate = (timestamp) => {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+    });
+  }
+
+  return 'No disponible';
+};
+
+// Añadir la función formatDateShort después de la función formatDate
+const formatDateShort = (timestamp) => {
+  if (!timestamp) return 'No disponible';
+
+  // Si es un objeto Timestamp de Firestore
+  if (timestamp.seconds) {
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  // Si es una cadena de fecha ISO
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   }
 

@@ -354,8 +354,6 @@ const headers = [
   { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
   { title: 'Nombre', key: 'nombre', align: 'start', sortable: true },
   { title: 'Apellidos', key: 'apellidos', align: 'start', sortable: true },
-  { title: 'Email', key: 'email', align: 'start', sortable: true },
-  { title: 'DNI', key: 'dni', align: 'start', sortable: true },
   { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
   { title: 'Estado', key: 'estado', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
