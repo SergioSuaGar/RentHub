@@ -9,7 +9,7 @@
         <!-- Resumen de propiedades -->
         <v-row>
           <v-col cols="12" md="6" lg="3">
-            <v-card>
+            <v-card class="cursor-pointer" @click="router.push('/propiedades')">
               <v-card-item>
                 <v-card-title>
                   <v-icon icon="mdi-home" class="me-2" color="primary"></v-icon>
@@ -25,7 +25,7 @@
 
           <!-- Resumen de inquilinos -->
           <v-col cols="12" md="6" lg="3">
-            <v-card>
+            <v-card class="cursor-pointer" @click="router.push('/inquilinos')">
               <v-card-item>
                 <v-card-title>
                   <v-icon icon="mdi-account-group" class="me-2" color="info"></v-icon>
@@ -41,7 +41,7 @@
 
           <!-- Resumen de facturas -->
           <v-col cols="12" md="6" lg="3">
-            <v-card>
+            <v-card class="cursor-pointer" @click="router.push('/facturas')">
               <v-card-item>
                 <v-card-title>
                   <v-icon icon="mdi-cash" class="me-2" color="success"></v-icon>
@@ -65,7 +65,7 @@
 
           <!-- Facturas pendientes -->
           <v-col cols="12" md="6" lg="3">
-            <v-card>
+            <v-card class="cursor-pointer" @click="router.push('/facturas')">
               <v-card-item>
                 <v-card-title>
                   <v-icon icon="mdi-file-document-alert" class="me-2" color="warning"></v-icon>
@@ -217,8 +217,10 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 import { collection, query, getDocs, doc, setDoc, where } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
+import { useRouter } from 'vue-router';
 
 const { user } = useAuth();
+const router = useRouter();
 
 // Variables para los datos
 const propiedadesActivas = ref([]);
