@@ -8,6 +8,7 @@ import PendingView from '../views/PendingView.vue';
 import SettingsView from '../views/SettingsView.vue';
 import InquilinosView from '../views/InquilinosView.vue';
 import FacturasView from '../views/FacturasView.vue';
+import PropiedadesView from '../views/PropiedadesView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -51,7 +52,7 @@ const router = createRouter({
     {
       path: '/propiedades',
       name: 'propiedades',
-      component: () => import('@/views/PropiedadesView.vue'),
+      component: PropiedadesView,
       meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
     },
     /*     {
