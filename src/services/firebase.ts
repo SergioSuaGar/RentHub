@@ -48,6 +48,22 @@ export interface Factura {
   updatedBy: string;
 }
 
+export interface Contrato {
+  id: string;
+  propiedadId: string;
+  propiedadNombre: string;
+  inquilinosIds: string[];
+  inquilinosNombres: string[];
+  precio: number;
+  fechaInicio: string;
+  fechaRenovacion: string;
+  estado: boolean;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
 export interface Usuario {
   uid: string;
   email: string;

@@ -9,6 +9,7 @@ import SettingsView from '../views/SettingsView.vue';
 import InquilinosView from '../views/InquilinosView.vue';
 import FacturasView from '../views/FacturasView.vue';
 import PropiedadesView from '../views/PropiedadesView.vue';
+import ContratosView from '../views/ContratosView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -53,6 +54,12 @@ const router = createRouter({
       path: '/propiedades',
       name: 'propiedades',
       component: PropiedadesView,
+      meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
+    },
+    {
+      path: '/contratos',
+      name: 'contratos',
+      component: ContratosView,
       meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
     },
     /*     {

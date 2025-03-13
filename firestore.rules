@@ -83,5 +83,14 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update, delete: if isPropietario() || isAdmin();
     }
+
+    // Reglas para la colección de contratos
+    match /contratos/{contratoId} {
+      allow read: if isAuthenticated() && 
+        (isPropietario() || 
+        isAdmin() || 
+        isInquilino());
+      allow write: if isPropietario() || isAdmin();
+    }
   }
 }

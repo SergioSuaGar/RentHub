@@ -103,9 +103,9 @@ const items = [
     to: '/facturas',
   },
   {
-    title: 'Documentos',
+    title: 'Contratos',
     icon: 'mdi-file-document',
-    to: '/documentos',
+    to: '/contratos',
   },
 ];
 </script>
