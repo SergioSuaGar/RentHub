@@ -35,10 +35,12 @@ export interface Pago {
 
 export interface Factura {
   id: string;
-  tipo: 'Luz' | 'Agua' | 'Agua caliente';
+  tipo: 'Luz' | 'Agua' | 'Agua caliente' | 'Cuota piso';
   propiedadId: string;
   propiedadNombre: string;
   importe: number;
+  importePagado?: number;
+  fechaPago?: string;
   fechaInicio: string;
   fechaFin: string;
   estado: 'pendiente' | 'pagada';

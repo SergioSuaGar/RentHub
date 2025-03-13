@@ -54,6 +54,11 @@
             {{ formatCurrency(item.importe) }}
           </template>
 
+          <!-- Columna de importe pagado -->
+          <template #[`item.importePagado`]="{ item }">
+            {{ item.estado === 'pagada' ? formatCurrency(item.importePagado) : '-' }}
+          </template>
+
           <!-- Columna de fechas -->
           <template #[`item.fechaInicio`]="{ item }">
             {{ formatDateShort(item.fechaInicio) }}
@@ -128,13 +133,13 @@
                     <v-col cols="12" md="6">
                       <div class="text-subtitle-1 font-weight-bold mb-2">Información Adicional</div>
                       <v-list density="compact">
-                        <v-list-item>
+                        <v-list-item v-if="item.estado === 'pagada'">
                           <template v-slot:prepend>
-                            <v-icon icon="mdi-cash" class="me-2"></v-icon>
+                            <v-icon icon="mdi-calendar-check" class="me-2"></v-icon>
                           </template>
-                          <v-list-item-title>Importe</v-list-item-title>
+                          <v-list-item-title>Fecha de Pago</v-list-item-title>
                           <v-list-item-subtitle>{{
-                            formatCurrency(item.importe)
+                            formatDateShort(item.fechaPago)
                           }}</v-list-item-subtitle>
                         </v-list-item>
                         <v-list-item>
@@ -310,6 +315,69 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Diálogo para registrar pago -->
+    <v-dialog v-model="dialogPago" max-width="500px">
+      <v-card>
+        <v-card-title class="text-h5">Registrar Pago</v-card-title>
+        <v-card-text>
+          <v-form ref="formPago" v-model="formPagoValid" lazy-validation>
+            <v-container>
+              <v-row>
+                <v-col cols="12">
+                  <div class="text-subtitle-1 mb-2">Importe a pagar:</div>
+                  <div class="text-h6 mb-4">{{ formatCurrency(editedItem.importe) }}</div>
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="pagoData.importePagado"
+                    label="Importe Pagado *"
+                    :rules="[rules.required, rules.numeric]"
+                    required
+                    :hint="'Introduce el importe pagado (usar coma para decimales)'"
+                    persistent-hint
+                    @input="formatImportePagado"
+                    validate-on-blur
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    type="date"
+                    v-model="pagoData.fechaPago"
+                    label="Fecha de Pago *"
+                    :rules="[rules.required]"
+                    required
+                    :hint="'Selecciona la fecha en que se realizó el pago'"
+                    persistent-hint
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="secondary"
+            variant="text"
+            @click="closeDialogPago"
+            :title="'Cancelar el registro de pago'"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="confirmarPago"
+            :loading="saving"
+            :disabled="!formPagoValid || saving"
+            :title="'Confirmar el registro de pago'"
+          >
+            Confirmar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -336,6 +404,7 @@ const tiposFactura = ['Luz', 'Agua', 'Agua caliente', 'Cuota piso'];
 // Variables para el diálogo
 const dialog = ref(false);
 const dialogDelete = ref(false);
+const dialogPago = ref(false);
 const editedIndex = ref(-1);
 const editedItem = ref({
   tipo: '',
@@ -362,6 +431,7 @@ const headers = [
   { title: 'Tipo', key: 'tipo', align: 'start', sortable: true },
   { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
   { title: 'Importe', key: 'importe', align: 'end', sortable: true },
+  { title: 'Pagado', key: 'importePagado', align: 'end', sortable: true },
   { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
   { title: 'Fecha Fin', key: 'fechaFin', align: 'start', sortable: true },
   { title: 'Estado', key: 'estado', align: 'center', sortable: true },
@@ -396,7 +466,7 @@ const formTitle = computed(() => {
 
 // Formatear moneda
 const formatCurrency = (value) => {
-  if (!value) return '0,00 €';
+  if (!value) return '0 €';
   return `${value} €`;
 };
 
@@ -439,9 +509,9 @@ const formatDateShort = (timestamp) => {
   if (timestamp.seconds) {
     const date = new Date(timestamp.seconds * 1000);
     return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
     });
   }
 
@@ -449,9 +519,9 @@ const formatDateShort = (timestamp) => {
   if (typeof timestamp === 'string') {
     const date = new Date(timestamp);
     return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
     });
   }
 
@@ -473,6 +543,31 @@ const formatImporte = (event) => {
     value = parts[0] + ',' + parts[1].slice(0, 2);
   }
   editedItem.value.importe = value;
+};
+
+// Variables para el diálogo de pago
+const formPago = ref(null);
+const formPagoValid = ref(false);
+const pagoData = ref({
+  importePagado: '',
+  fechaPago: new Date().toISOString().split('T')[0],
+});
+
+// Formatear importe pagado
+const formatImportePagado = (event) => {
+  let value = event.target.value;
+  // Permitir solo números y una coma
+  value = value.replace(/[^\d,]/g, '');
+  // Asegurar solo una coma
+  const parts = value.split(',');
+  if (parts.length > 2) {
+    value = parts[0] + ',' + parts.slice(1).join('');
+  }
+  // Limitar a dos decimales
+  if (parts.length === 2 && parts[1].length > 2) {
+    value = parts[0] + ',' + parts[1].slice(0, 2);
+  }
+  pagoData.value.importePagado = value;
 };
 
 // Cargar propiedades activas
@@ -621,22 +716,98 @@ const updatePropiedadNombre = (propiedadId) => {
   editedItem.value.propiedadNombre = propiedad ? propiedad.nombre : '';
 };
 
-// Añadir la función para cambiar el estado
-const toggleEstado = async (item) => {
+// Abrir diálogo de pago
+const openDialogPago = (item) => {
+  editedItem.value = { ...item };
+  pagoData.value = {
+    importePagado: item.importe.toString().replace('.', ','),
+    fechaPago: new Date().toISOString().split('T')[0],
+  };
+  dialogPago.value = true;
+  nextTick(() => {
+    formPago.value?.resetValidation();
+  });
+};
+
+// Cerrar diálogo de pago
+const closeDialogPago = () => {
+  dialogPago.value = false;
+  editedItem.value = { ...defaultItem };
+  pagoData.value = {
+    importePagado: '',
+    fechaPago: new Date().toISOString().split('T')[0],
+  };
+  nextTick(() => {
+    formPago.value?.reset();
+    formPagoValid.value = false;
+  });
+};
+
+// Confirmar pago
+const confirmarPago = async () => {
+  if (saving.value) return;
+
+  const isValid = await formPago.value?.validate();
+
+  if (!isValid) {
+    formPagoValid.value = false;
+    return;
+  }
+
+  formPagoValid.value = true;
+  await registrarPago();
+};
+
+// Registrar pago
+const registrarPago = async () => {
+  if (saving.value || !formPagoValid.value) return;
+
   try {
-    const newEstado = item.estado === 'pagada' ? 'pendiente' : 'pagada';
+    saving.value = true;
     await setDoc(
-      doc(db, 'facturas', item.id),
+      doc(db, 'facturas', editedItem.value.id),
       {
-        estado: newEstado,
+        estado: 'pagada',
+        importePagado: pagoData.value.importePagado.replace(',', '.'),
+        fechaPago: new Date(pagoData.value.fechaPago).toISOString(),
         updatedAt: new Date().toISOString(),
         updatedBy: user.value.uid,
       },
       { merge: true }
     );
-    item.estado = newEstado;
+    editedItem.value.estado = 'pagada';
+    closeDialogPago();
+    await loadFacturas();
   } catch (error) {
-    console.error('Error al cambiar estado:', error);
+    console.error('Error al registrar pago:', error);
+  } finally {
+    saving.value = false;
+  }
+};
+
+// Modificar la función toggleEstado
+const toggleEstado = async (item) => {
+  if (item.estado === 'pagada') {
+    // Si está pagada, simplemente marcar como pendiente
+    try {
+      await setDoc(
+        doc(db, 'facturas', item.id),
+        {
+          estado: 'pendiente',
+          importePagado: null,
+          fechaPago: null,
+          updatedAt: new Date().toISOString(),
+          updatedBy: user.value.uid,
+        },
+        { merge: true }
+      );
+      item.estado = 'pendiente';
+    } catch (error) {
+      console.error('Error al cambiar estado:', error);
+    }
+  } else {
+    // Si está pendiente, abrir el diálogo de pago
+    openDialogPago(item);
   }
 };
 
