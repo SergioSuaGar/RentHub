@@ -331,7 +331,7 @@ const facturas = ref([]);
 const propiedades = ref([]);
 
 // Tipos de factura
-const tiposFactura = ['Luz', 'Agua', 'Agua caliente'];
+const tiposFactura = ['Luz', 'Agua', 'Agua caliente', 'Cuota piso'];
 
 // Variables para el diálogo
 const dialog = ref(false);
