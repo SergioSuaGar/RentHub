@@ -68,7 +68,7 @@
               variant="text"
               size="small"
               color="primary"
-              @click="openDialog(item)"
+              @click.stop="openDialog(item)"
               :title="'Editar información del inquilino'"
             >
               <v-icon>mdi-pencil</v-icon>
@@ -79,7 +79,7 @@
               variant="text"
               size="small"
               color="error"
-              @click="confirmDelete(item)"
+              @click.stop="confirmDelete(item)"
               :title="'Eliminar inquilino del sistema'"
             >
               <v-icon>mdi-trash-can-outline</v-icon>
@@ -89,7 +89,7 @@
               variant="text"
               size="small"
               :color="item.estado ? 'warning' : 'success'"
-              @click="toggleEstado(item)"
+              @click.stop="toggleEstado(item)"
               :title="item.estado ? 'Desactivar inquilino' : 'Activar inquilino'"
             >
               <v-icon>{{ item.estado ? 'mdi-close' : 'mdi-check' }}</v-icon>

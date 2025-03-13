@@ -79,7 +79,7 @@
               variant="text"
               size="small"
               color="primary"
-              @click="openDialog(item)"
+              @click.stop="openDialog(item)"
               :title="'Editar información de la factura'"
             >
               <v-icon>mdi-pencil</v-icon>
@@ -89,7 +89,7 @@
               variant="text"
               size="small"
               color="error"
-              @click="confirmDelete(item)"
+              @click.stop="confirmDelete(item)"
               :title="'Eliminar factura del sistema'"
             >
               <v-icon>mdi-trash-can-outline</v-icon>
@@ -99,7 +99,7 @@
               variant="text"
               size="small"
               :color="item.estado === 'pagada' ? 'warning' : 'success'"
-              @click="toggleEstado(item)"
+              @click.stop="toggleEstado(item)"
               :title="item.estado === 'pagada' ? 'Marcar como pendiente' : 'Marcar como pagada'"
             >
               <v-icon>{{ item.estado === 'pagada' ? 'mdi-cash-remove' : 'mdi-cash-check' }}</v-icon>
