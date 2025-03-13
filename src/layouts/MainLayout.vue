@@ -103,11 +103,6 @@ const items = [
     to: '/facturas',
   },
   {
-    title: 'Pagos',
-    icon: 'mdi-cash',
-    to: '/pagos',
-  },
-  {
     title: 'Documentos',
     icon: 'mdi-file-document',
     to: '/documentos',
