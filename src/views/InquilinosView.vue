@@ -44,7 +44,7 @@
                 bg-color="surface"
                 class="search-field elevation-1"
                 clearable
-                :title="'Buscar inquilinos por nombre, apellidos, email o DNI'"
+                :title="'Buscar inquilinos por nombre, apellidos, teléfono o DNI'"
               ></v-text-field>
             </v-toolbar>
           </template>
@@ -107,10 +107,12 @@
                       <v-list density="compact">
                         <v-list-item>
                           <template v-slot:prepend>
-                            <v-icon icon="mdi-email" class="me-2"></v-icon>
+                            <v-icon icon="mdi-phone" class="me-2"></v-icon>
                           </template>
-                          <v-list-item-title>Email</v-list-item-title>
-                          <v-list-item-subtitle>{{ item.email }}</v-list-item-subtitle>
+                          <v-list-item-title>Teléfono</v-list-item-title>
+                          <v-list-item-subtitle>{{
+                            item.telefono || 'No especificado'
+                          }}</v-list-item-subtitle>
                         </v-list-item>
                         <v-list-item>
                           <template v-slot:prepend>
@@ -214,11 +216,11 @@
                 </v-col>
                 <v-col cols="12" sm="6">
                   <v-text-field
-                    v-model="editedItem.email"
-                    :label="'Correo electrónico *'"
-                    :rules="[rules.required, rules.email]"
+                    v-model="editedItem.telefono"
+                    :label="'Teléfono *'"
+                    :rules="[rules.required, rules.telefono]"
                     required
-                    :hint="'Introduce un email válido'"
+                    :hint="'Introduce un número de teléfono válido'"
                     persistent-hint
                     @keydown.enter.prevent
                     validate-on-blur
@@ -334,6 +336,7 @@ const editedItem = ref({
   nombre: '',
   apellidos: '',
   email: '',
+  telefono: '',
   dni: '',
   estado: true,
   propiedadId: null,
@@ -343,6 +346,7 @@ const defaultItem = {
   nombre: '',
   apellidos: '',
   email: '',
+  telefono: '',
   dni: '',
   estado: true,
   propiedadId: null,
@@ -367,9 +371,10 @@ const saving = ref(false);
 const rules = {
   required: (v) => !!v || 'Este campo es requerido',
   maxLength: (max) => (v) => (v && v.length <= max) || `Máximo ${max} caracteres`,
-  email: (v) => {
-    const pattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
-    return pattern.test(v) || 'Introduce un email válido';
+  telefono: (v) => {
+    if (!v) return true;
+    const pattern = /^[0-9]{9}$/;
+    return pattern.test(v) || 'El teléfono debe tener 9 dígitos';
   },
   dni: (v) => {
     if (!v) return true;
