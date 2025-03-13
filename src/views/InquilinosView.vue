@@ -25,6 +25,9 @@
           :loading="loading"
           :search="search"
           class="elevation-1"
+          show-expand
+          item-value="id"
+          expand-on-click
         >
           <!-- Barra de búsqueda -->
           <template #top>
@@ -90,6 +93,82 @@
               :title="item.estado ? 'Desactivar inquilino' : 'Activar inquilino'"
             >
               <v-icon>{{ item.estado ? 'mdi-close' : 'mdi-check' }}</v-icon>
+            </v-btn>
+          </template>
+
+          <!-- Fila expandible -->
+          <template #expanded-row="{ item }">
+            <tr>
+              <td :colspan="headers.length + 1">
+                <v-card flat class="pa-4">
+                  <v-row>
+                    <v-col cols="12" md="6">
+                      <div class="text-subtitle-1 font-weight-bold mb-2">Información Adicional</div>
+                      <v-list density="compact">
+                        <v-list-item>
+                          <template v-slot:prepend>
+                            <v-icon icon="mdi-email" class="me-2"></v-icon>
+                          </template>
+                          <v-list-item-title>Email</v-list-item-title>
+                          <v-list-item-subtitle>{{ item.email }}</v-list-item-subtitle>
+                        </v-list-item>
+                        <v-list-item>
+                          <template v-slot:prepend>
+                            <v-icon icon="mdi-card-account-details" class="me-2"></v-icon>
+                          </template>
+                          <v-list-item-title>DNI</v-list-item-title>
+                          <v-list-item-subtitle>{{ item.dni }}</v-list-item-subtitle>
+                        </v-list-item>
+                        <v-list-item>
+                          <template v-slot:prepend>
+                            <v-icon icon="mdi-home" class="me-2"></v-icon>
+                          </template>
+                          <v-list-item-title>Propiedad</v-list-item-title>
+                          <v-list-item-subtitle>{{
+                            item.propiedadNombre || 'Sin asignar'
+                          }}</v-list-item-subtitle>
+                        </v-list-item>
+                      </v-list>
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <div class="text-subtitle-1 font-weight-bold mb-2">Historial</div>
+                      <v-list density="compact">
+                        <v-list-item>
+                          <template v-slot:prepend>
+                            <v-icon icon="mdi-calendar" class="me-2"></v-icon>
+                          </template>
+                          <v-list-item-title>Fecha de Registro</v-list-item-title>
+                          <v-list-item-subtitle>{{
+                            formatDate(item.createdAt)
+                          }}</v-list-item-subtitle>
+                        </v-list-item>
+                        <v-list-item>
+                          <template v-slot:prepend>
+                            <v-icon icon="mdi-clock-outline" class="me-2"></v-icon>
+                          </template>
+                          <v-list-item-title>Última Actualización</v-list-item-title>
+                          <v-list-item-subtitle>{{
+                            formatDate(item.updatedAt)
+                          }}</v-list-item-subtitle>
+                        </v-list-item>
+                      </v-list>
+                    </v-col>
+                  </v-row>
+                </v-card>
+              </td>
+            </tr>
+          </template>
+
+          <!-- Añadir el slot para el botón de expandir -->
+          <template #[`item.data-table-expand`]="{ item }">
+            <v-btn
+              icon
+              variant="text"
+              size="small"
+              @click="item.expand = !item.expand"
+              :title="item.expand ? 'Contraer detalles' : 'Expandir detalles'"
+            >
+              <v-icon>{{ item.expand ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
             </v-btn>
           </template>
         </v-data-table>
@@ -272,6 +351,7 @@ const defaultItem = {
 
 // Headers de la tabla
 const headers = [
+  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
   { title: 'Nombre', key: 'nombre', align: 'start', sortable: true },
   { title: 'Apellidos', key: 'apellidos', align: 'start', sortable: true },
   { title: 'Email', key: 'email', align: 'start', sortable: true },
@@ -472,6 +552,37 @@ const toggleEstado = async (item) => {
 const updatePropiedadNombre = (propiedadId) => {
   const propiedad = propiedades.value.find((p) => p.id === propiedadId);
   editedItem.value.propiedadNombre = propiedad ? propiedad.nombre : '';
+};
+
+// Modificar la función formatDate para manejar Timestamp de Firestore
+const formatDate = (timestamp) => {
+  if (!timestamp) return 'No disponible';
+
+  // Si es un objeto Timestamp de Firestore
+  if (timestamp.seconds) {
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  // Si es una cadena de fecha ISO
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  return 'No disponible';
 };
 
 // Modificar onMounted para cargar también las propiedades

@@ -25,6 +25,9 @@
           :loading="loading"
           :search="search"
           class="elevation-1"
+          show-expand
+          item-value="id"
+          expand-on-click
         >
           <!-- Barra de búsqueda -->
           <template #top>
@@ -96,6 +99,68 @@
             >
               <v-icon>{{ item.estado ? 'mdi-close' : 'mdi-check' }}</v-icon>
             </v-btn>
+          </template>
+
+          <!-- Añadir el slot para el botón de expandir -->
+          <template #[`item.data-table-expand`]="{ item }">
+            <v-btn
+              icon
+              variant="text"
+              size="small"
+              @click="item.expand = !item.expand"
+              :title="item.expand ? 'Contraer detalles' : 'Expandir detalles'"
+            >
+              <v-icon>{{ item.expand ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+            </v-btn>
+          </template>
+
+          <!-- Fila expandible -->
+          <template #expanded-row="{ item }">
+            <tr>
+              <td :colspan="headers.length + 1">
+                <v-card flat class="pa-4">
+                  <v-row>
+                    <v-col cols="12" md="6">
+                      <div class="text-subtitle-1 font-weight-bold mb-2">Información Adicional</div>
+                      <v-list density="compact">
+                        <v-list-item>
+                          <template v-slot:prepend>
+                            <v-icon icon="mdi-account-group" class="me-2"></v-icon>
+                          </template>
+                          <v-list-item-title>Inquilinos</v-list-item-title>
+                          <v-list-item-subtitle
+                            >{{ item.inquilinos?.length || 0 }} inquilinos</v-list-item-subtitle
+                          >
+                        </v-list-item>
+                      </v-list>
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <div class="text-subtitle-1 font-weight-bold mb-2">Historial</div>
+                      <v-list density="compact">
+                        <v-list-item>
+                          <template v-slot:prepend>
+                            <v-icon icon="mdi-calendar" class="me-2"></v-icon>
+                          </template>
+                          <v-list-item-title>Fecha de Registro</v-list-item-title>
+                          <v-list-item-subtitle>{{
+                            formatDate(item.createdAt)
+                          }}</v-list-item-subtitle>
+                        </v-list-item>
+                        <v-list-item>
+                          <template v-slot:prepend>
+                            <v-icon icon="mdi-clock-outline" class="me-2"></v-icon>
+                          </template>
+                          <v-list-item-title>Última Actualización</v-list-item-title>
+                          <v-list-item-subtitle>{{
+                            formatDate(item.updatedAt)
+                          }}</v-list-item-subtitle>
+                        </v-list-item>
+                      </v-list>
+                    </v-col>
+                  </v-row>
+                </v-card>
+              </td>
+            </tr>
           </template>
         </v-data-table>
       </v-card-text>
@@ -215,8 +280,8 @@ const defaultItem = {
 
 // Headers de la tabla
 const headers = [
+  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
   { title: 'Nombre', key: 'nombre', align: 'start', sortable: true },
-  { title: 'Inquilinos Activos', key: 'inquilinosActivos', align: 'start', sortable: false },
   { title: 'Estado', key: 'estado', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
 ];
@@ -398,6 +463,37 @@ const toggleEstado = async (item) => {
   } catch (error) {
     console.error('Error al cambiar estado:', error);
   }
+};
+
+// Añadir la función formatDate
+const formatDate = (timestamp) => {
+  if (!timestamp) return 'No disponible';
+
+  // Si es un objeto Timestamp de Firestore
+  if (timestamp.seconds) {
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  // Si es una cadena de fecha ISO
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  return 'No disponible';
 };
 
 // Cargar datos iniciales
