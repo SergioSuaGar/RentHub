@@ -471,6 +471,7 @@ const calcularFechaRenovacion = (fechaInicio) => {
   if (!fechaInicio) return;
   const fecha = new Date(fechaInicio);
   fecha.setFullYear(fecha.getFullYear() + 1);
+  fecha.setDate(fecha.getDate() - 1); // Restar un día para que sea el día anterior al año
   editedItem.value.fechaRenovacion = fecha.toISOString().split('T')[0];
 };
 
