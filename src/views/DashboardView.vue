@@ -405,7 +405,19 @@ const saveFactura = async () => {
     await setDoc(docRef, itemData);
 
     if (registrarOtro.value) {
+      // Mantener los valores de los campos específicos
+      const tipo = editedItem.value.tipo;
+      const fechaInicio = editedItem.value.fechaInicio;
+      const fechaFin = editedItem.value.fechaFin;
+
+      // Resetear el formulario
       editedItem.value = { ...defaultItem };
+
+      // Restaurar los valores mantenidos
+      editedItem.value.tipo = tipo;
+      editedItem.value.fechaInicio = fechaInicio;
+      editedItem.value.fechaFin = fechaFin;
+
       form.value?.resetValidation();
       formValid.value = false;
     } else {
