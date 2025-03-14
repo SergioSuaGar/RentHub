@@ -59,6 +59,7 @@ export interface Contrato {
   precio: number;
   fechaInicio: string;
   fechaRenovacion: string;
+  ipcAjustado: boolean;
   estado: boolean;
   createdAt: string;
   createdBy: string;

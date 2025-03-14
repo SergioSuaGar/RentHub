@@ -66,8 +66,8 @@
           <!-- Columna de estado de renovación -->
           <template #[`item.estadoRenovacion`]="{ item }">
             <v-chip
-              :color="calcularEstadoRenovacion(item.fechaRenovacion).color"
-              :text="calcularEstadoRenovacion(item.fechaRenovacion).estado"
+              :color="calcularEstadoRenovacion(item.fechaRenovacion, item.ipcAjustado).color"
+              :text="calcularEstadoRenovacion(item.fechaRenovacion, item.ipcAjustado).estado"
               size="small"
               @click.stop="handleEstadoRenovacionClick(item)"
               style="cursor: pointer"
@@ -794,7 +794,7 @@ const toggleEstado = async (item) => {
 };
 
 // Función para calcular el estado de renovación
-const calcularEstadoRenovacion = (fechaRenovacion) => {
+const calcularEstadoRenovacion = (fechaRenovacion, ipcAjustado = true) => {
   if (!fechaRenovacion) return { estado: 'Vigente', color: 'success' };
 
   const fechaRenovacionObj = new Date(fechaRenovacion);
@@ -804,8 +804,14 @@ const calcularEstadoRenovacion = (fechaRenovacion) => {
   fechaRenovacionObj.setHours(0, 0, 0, 0);
   hoy.setHours(0, 0, 0, 0);
 
+  // Si la fecha de renovación es menor o igual a hoy
   if (fechaRenovacionObj <= hoy) {
     return { estado: 'Pendiente de Renovación', color: 'error' };
+  }
+
+  // Si el IPC no ha sido ajustado después de la última renovación
+  if (!ipcAjustado) {
+    return { estado: 'Pendiente de Ajuste IPC', color: 'warning' };
   }
 
   return { estado: 'Vigente', color: 'success' };
@@ -820,13 +826,30 @@ const calcularNuevoPrecio = (precioActual, incrementoIPC) => {
   return nuevoPrecio.toFixed(2).replace('.', ',');
 };
 
+// Función para convertir fecha ISO a formato de entrada (YYYY-MM-DD)
+const isoToDateInput = (isoDate) => {
+  if (!isoDate) return '';
+  return isoDate.split('T')[0];
+};
+
+// Función para convertir fecha de entrada a ISO
+const dateInputToIso = (inputDate) => {
+  if (!inputDate) return '';
+  return new Date(inputDate).toISOString();
+};
+
 // Función para manejar el clic en el estado de renovación
 const handleEstadoRenovacionClick = (item) => {
-  const estado = calcularEstadoRenovacion(item.fechaRenovacion).estado;
+  const estado = calcularEstadoRenovacion(item.fechaRenovacion, item.ipcAjustado).estado;
 
   if (estado === 'Pendiente de Renovación') {
     // Abrir diálogo de renovación
     editedItem.value = { ...item };
+    // Calcular la nueva fecha de renovación (un año después)
+    const fechaRenovacionActual = new Date(item.fechaRenovacion);
+    fechaRenovacionActual.setFullYear(fechaRenovacionActual.getFullYear() + 1);
+    // Convertir la fecha al formato de entrada YYYY-MM-DD
+    editedItem.value.fechaRenovacion = isoToDateInput(fechaRenovacionActual.toISOString());
     dialogRenovacion.value = true;
   } else if (estado === 'Pendiente de Ajuste IPC') {
     // Abrir diálogo de ajuste IPC
@@ -844,13 +867,15 @@ const handleEstadoRenovacionClick = (item) => {
 const renovarContrato = async () => {
   try {
     saving.value = true;
-    const fechaRenovacion = new Date(editedItem.value.fechaRenovacion);
+    // Asegurarnos de que la fecha se guarda en formato YYYY-MM-DD
+    const fechaRenovacion = editedItem.value.fechaRenovacion;
 
     await setDoc(
       doc(db, 'contratos', editedItem.value.id),
       {
-        fechaRenovacion: fechaRenovacion.toISOString(),
-        updatedAt: new Date(),
+        fechaRenovacion,
+        ipcAjustado: false,
+        updatedAt: new Date().toISOString(),
         updatedBy: user.value.uid,
       },
       { merge: true }
@@ -877,7 +902,8 @@ const ajustarIPC = async () => {
       doc(db, 'contratos', editedItem.value.id),
       {
         precio: nuevoPrecio,
-        updatedAt: new Date(),
+        ipcAjustado: true, // Marcar que el IPC ha sido ajustado
+        updatedAt: new Date().toISOString(),
         updatedBy: user.value.uid,
       },
       { merge: true }
