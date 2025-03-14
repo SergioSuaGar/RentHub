@@ -3,42 +3,21 @@
     <v-card>
       <v-toolbar flat color="primary" class="toolbar-custom">
         <v-toolbar-title class="text-white toolbar-title">Dashboard</v-toolbar-title>
+        <v-select
+          v-model="propiedadSeleccionada"
+          :items="propiedadesActivas"
+          item-title="nombre"
+          item-value="id"
+          label="Propiedad"
+          clearable
+          hide-details
+          @update:model-value="onPropiedadSeleccionada"
+        ></v-select>
       </v-toolbar>
 
       <v-card-text>
-        <!-- Resumen de propiedades -->
+        <!-- Primera fila: Facturas Mes y Pendientes -->
         <v-row>
-          <v-col cols="12" md="6" lg="3">
-            <v-card class="cursor-pointer" @click="router.push('/propiedades')">
-              <v-card-item>
-                <v-card-title>
-                  <v-icon icon="mdi-home" class="me-2" color="primary"></v-icon>
-                  Propiedades
-                </v-card-title>
-                <v-card-subtitle class="mt-2">
-                  <span class="text-h4">{{ propiedadesActivas.length }}</span>
-                  <span class="text-caption ms-2">Activas</span>
-                </v-card-subtitle>
-              </v-card-item>
-            </v-card>
-          </v-col>
-
-          <!-- Resumen de inquilinos -->
-          <v-col cols="12" md="6" lg="3">
-            <v-card class="cursor-pointer" @click="router.push('/inquilinos')">
-              <v-card-item>
-                <v-card-title>
-                  <v-icon icon="mdi-account-group" class="me-2" color="info"></v-icon>
-                  Inquilinos
-                </v-card-title>
-                <v-card-subtitle class="mt-2">
-                  <span class="text-h4">{{ inquilinosActivos.length }}</span>
-                  <span class="text-caption ms-2">Activos</span>
-                </v-card-subtitle>
-              </v-card-item>
-            </v-card>
-          </v-col>
-
           <!-- Resumen de facturas -->
           <v-col cols="12" md="6" lg="3">
             <v-card class="cursor-pointer" @click="router.push('/facturas')">
@@ -80,10 +59,10 @@
           </v-col>
         </v-row>
 
-        <!-- Actividad reciente -->
+        <!-- Segunda fila: Acciones Rápidas y Contratos Pendientes -->
         <v-row class="mt-4">
           <!-- Acciones rápidas -->
-          <v-col cols="12" md="4">
+          <v-col cols="12" md="6">
             <v-card>
               <v-card-title class="d-flex align-center">
                 <v-icon icon="mdi-lightning-bolt" class="me-2"></v-icon>
@@ -98,6 +77,88 @@
                   ></v-list-item>
                 </v-list>
               </v-card-text>
+            </v-card>
+          </v-col>
+
+          <!-- Propiedades con contratos pendientes -->
+          <v-col cols="12" md="6">
+            <v-card>
+              <v-card-title class="d-flex align-center">
+                <v-icon icon="mdi-file-document-alert" class="me-2"></v-icon>
+                Contratos Pendientes
+              </v-card-title>
+              <v-card-text>
+                <v-list>
+                  <v-list-item
+                    v-for="propiedad in propiedadesRenovacionPendiente"
+                    :key="propiedad.id"
+                    :title="propiedad.nombre"
+                    :subtitle="'Pendiente de renovación'"
+                    @click="router.push(`/contratos?propiedadId=${propiedad.id}`)"
+                    class="cursor-pointer"
+                  >
+                    <template v-slot:prepend>
+                      <v-icon color="error">mdi-alert-circle</v-icon>
+                    </template>
+                  </v-list-item>
+
+                  <v-list-item
+                    v-for="propiedad in propiedadesAjusteIPCPendiente"
+                    :key="propiedad.id + '-ipc'"
+                    :title="propiedad.nombre"
+                    :subtitle="'Pendiente de ajuste IPC'"
+                    @click="router.push(`/contratos?propiedadId=${propiedad.id}`)"
+                    class="cursor-pointer"
+                  >
+                    <template v-slot:prepend>
+                      <v-icon color="warning">mdi-alert</v-icon>
+                    </template>
+                  </v-list-item>
+
+                  <v-list-item
+                    v-if="
+                      !propiedadesRenovacionPendiente.length &&
+                      !propiedadesAjusteIPCPendiente.length
+                    "
+                    title="No hay contratos pendientes"
+                  ></v-list-item>
+                </v-list>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <!-- Tercera fila: Propiedades e Inquilinos -->
+        <v-row class="mt-4">
+          <!-- Resumen de propiedades -->
+          <v-col cols="12" md="6" lg="3">
+            <v-card class="cursor-pointer" @click="router.push('/propiedades')">
+              <v-card-item>
+                <v-card-title>
+                  <v-icon icon="mdi-home" class="me-2" color="primary"></v-icon>
+                  Propiedades
+                </v-card-title>
+                <v-card-subtitle class="mt-2">
+                  <span class="text-h4">{{ propiedadesActivas.length }}</span>
+                  <span class="text-caption ms-2">Activas</span>
+                </v-card-subtitle>
+              </v-card-item>
+            </v-card>
+          </v-col>
+
+          <!-- Resumen de inquilinos -->
+          <v-col cols="12" md="6" lg="3">
+            <v-card class="cursor-pointer" @click="router.push('/inquilinos')">
+              <v-card-item>
+                <v-card-title>
+                  <v-icon icon="mdi-account-group" class="me-2" color="info"></v-icon>
+                  Inquilinos
+                </v-card-title>
+                <v-card-subtitle class="mt-2">
+                  <span class="text-h4">{{ inquilinosActivos.length }}</span>
+                  <span class="text-caption ms-2">Activos</span>
+                </v-card-subtitle>
+              </v-card-item>
             </v-card>
           </v-col>
         </v-row>
@@ -214,7 +275,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import { collection, query, getDocs, doc, setDoc, where } from 'firebase/firestore';
+import { collection, query, getDocs, doc, setDoc, where, getDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
 import { useRouter } from 'vue-router';
@@ -223,12 +284,14 @@ const { user } = useAuth();
 const router = useRouter();
 
 // Variables para los datos
+const propiedadSeleccionada = ref(null);
 const propiedadesActivas = ref([]);
 const inquilinosActivos = ref([]);
 const facturasPendientes = ref([]);
 const propiedades = ref([]);
 const totalCobradoMes = ref(0);
 const totalEsperadoMes = ref(0);
+const propiedadesContratosPendientes = ref([]);
 
 // Variables para el formulario
 const dialog = ref(false);
@@ -299,25 +362,65 @@ const formatImporte = (event) => {
 };
 
 // Cargar datos
-const loadData = async () => {
+const loadData = async (propiedadId = null) => {
   try {
     // Cargar propiedades activas
-    const propiedadesQuery = query(collection(db, 'propiedades'), where('estado', '==', true));
-    const propiedadesSnapshot = await getDocs(propiedadesQuery);
-    propiedadesActivas.value = propiedadesSnapshot.docs.map((doc) => ({
+    await loadPropiedades();
+
+    // Cargar inquilinos activos
+    await loadInquilinos(propiedadId);
+
+    // Cargar facturas pendientes y calcular totales del mes
+    await loadFacturas(propiedadId);
+
+    // Cargar propiedades con contratos pendientes
+    await loadPropiedadesContratosPendientes(propiedadId);
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+  }
+};
+
+// Cargar propiedades activas
+const loadPropiedades = async () => {
+  try {
+    const q = query(collection(db, 'propiedades'), where('estado', '==', true));
+    const querySnapshot = await getDocs(q);
+    propiedadesActivas.value = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
     propiedades.value = propiedadesActivas.value;
+  } catch (error) {
+    console.error('Error al cargar propiedades:', error);
+  }
+};
 
-    // Cargar inquilinos activos
-    const inquilinosQuery = query(collection(db, 'inquilinos'), where('estado', '==', true));
-    const inquilinosSnapshot = await getDocs(inquilinosQuery);
-    inquilinosActivos.value = inquilinosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+// Cargar inquilinos activos
+const loadInquilinos = async (propiedadId = null) => {
+  try {
+    let q = query(collection(db, 'inquilinos'), where('estado', '==', true));
 
-    // Cargar facturas pendientes y calcular totales del mes
-    const facturasQuery = query(collection(db, 'facturas'));
-    const facturasSnapshot = await getDocs(facturasQuery);
+    if (propiedadId) {
+      q = query(q, where('propiedadId', '==', propiedadId));
+    }
+
+    const querySnapshot = await getDocs(q);
+    inquilinosActivos.value = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Error al cargar inquilinos:', error);
+  }
+};
+
+// Cargar facturas pendientes y calcular totales del mes
+const loadFacturas = async (propiedadId = null) => {
+  try {
+    let q = query(collection(db, 'facturas'));
+
+    if (propiedadId) {
+      q = query(q, where('propiedadId', '==', propiedadId));
+    }
+
+    const facturasSnapshot = await getDocs(q);
     const mesActual = new Date().getMonth();
     const añoActual = new Date().getFullYear();
 
@@ -345,8 +448,81 @@ const loadData = async () => {
     totalCobradoMes.value = cobradoMes;
     totalEsperadoMes.value = esperadoMes;
   } catch (error) {
-    console.error('Error al cargar datos:', error);
+    console.error('Error al cargar facturas:', error);
   }
+};
+
+// Cargar propiedades con contratos pendientes
+const loadPropiedadesContratosPendientes = async (propiedadId = null) => {
+  try {
+    let q = query(collection(db, 'contratos'), where('estado', '==', true));
+
+    if (propiedadId) {
+      q = query(q, where('propiedadId', '==', propiedadId));
+    }
+
+    const querySnapshot = await getDocs(q);
+
+    const contratos = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    const propiedadesIds = [...new Set(contratos.map((contrato) => contrato.propiedadId))];
+
+    const propiedadesPromises = propiedadesIds.map(async (propiedadId) => {
+      const propiedadDoc = await getDoc(doc(db, 'propiedades', propiedadId));
+      return {
+        id: propiedadDoc.id,
+        ...propiedadDoc.data(),
+      };
+    });
+
+    const propiedades = await Promise.all(propiedadesPromises);
+
+    propiedadesContratosPendientes.value = propiedades
+      .filter((propiedad) => propiedad)
+      .map((propiedad) => {
+        const contratosPropiedad = contratos.filter(
+          (contrato) => contrato.propiedadId === propiedad.id
+        );
+
+        const pendienteRenovacion = contratosPropiedad.some((contrato) => {
+          const fechaRenovacion = contrato.fechaRenovacion
+            ? new Date(contrato.fechaRenovacion)
+            : null;
+          const hoy = new Date();
+          return fechaRenovacion && fechaRenovacion <= hoy;
+        });
+
+        const pendienteAjusteIPC = contratosPropiedad.some(
+          (contrato) => contrato.ipcAjustado === false
+        );
+
+        return {
+          ...propiedad,
+          pendienteRenovacion,
+          pendienteAjusteIPC,
+        };
+      });
+  } catch (error) {
+    console.error('Error al cargar propiedades con contratos pendientes:', error);
+  }
+};
+
+// Propiedades computadas
+const propiedadesRenovacionPendiente = computed(() => {
+  return propiedadesContratosPendientes.value.filter((propiedad) => propiedad.pendienteRenovacion);
+});
+
+const propiedadesAjusteIPCPendiente = computed(() => {
+  return propiedadesContratosPendientes.value.filter((propiedad) => propiedad.pendienteAjusteIPC);
+});
+
+// Manejar cambio de propiedad seleccionada
+const onPropiedadSeleccionada = async () => {
+  await loadData(propiedadSeleccionada.value);
+  await loadPropiedadesContratosPendientes(propiedadSeleccionada.value);
 };
 
 // Funciones del formulario
