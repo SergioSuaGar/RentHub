@@ -241,7 +241,8 @@
                 <v-col cols="12" sm="6">
                   <v-text-field
                     type="date"
-                    v-model="editedItem.fechaInicio"
+                    :model-value="editedItem.fechaInicio"
+                    @update:model-value="(v) => (editedItem.fechaInicio = v)"
                     label="Fecha Inicio *"
                     :rules="[rules.required]"
                     required
@@ -252,9 +253,10 @@
                 <v-col cols="12" sm="6">
                   <v-text-field
                     type="date"
-                    v-model="editedItem.fechaFin"
+                    :model-value="editedItem.fechaFin"
+                    @update:model-value="(v) => (editedItem.fechaFin = v)"
                     label="Fecha Fin *"
-                    :rules="[rules.required, rules.fechaFinValida]"
+                    :rules="[rules.required]"
                     required
                     :hint="'Selecciona la fecha de fin'"
                     persistent-hint
@@ -434,7 +436,13 @@ const headers = [
   { title: 'Pagado', key: 'importePagado', align: 'end', sortable: true },
   { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
   { title: 'Fecha Fin', key: 'fechaFin', align: 'start', sortable: true },
-  { title: 'Estado', key: 'estado', align: 'center', sortable: true },
+  {
+    title: 'Estado',
+    key: 'estado',
+    align: 'center',
+    sortable: false,
+    headerProps: { align: 'center' },
+  },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
 ];
 
@@ -607,10 +615,31 @@ const loadFacturas = async () => {
   }
 };
 
+// Función para convertir fecha ISO a formato de entrada (YYYY-MM-DD)
+const isoToDateInput = (isoDate) => {
+  if (!isoDate) return '';
+  return isoDate.split('T')[0];
+};
+
+// Función para convertir fecha de entrada a ISO
+const dateInputToIso = (inputDate) => {
+  if (!inputDate) return '';
+  return new Date(inputDate).toISOString();
+};
+
 // Abrir diálogo
 const openDialog = (item) => {
   editedIndex.value = item ? facturas.value.indexOf(item) : -1;
-  editedItem.value = item ? { ...item } : { ...defaultItem };
+  if (item) {
+    editedItem.value = {
+      ...item,
+      fechaInicio: isoToDateInput(item.fechaInicio),
+      fechaFin: isoToDateInput(item.fechaFin),
+      fechaPago: isoToDateInput(item.fechaPago),
+    };
+  } else {
+    editedItem.value = { ...defaultItem };
+  }
   dialog.value = true;
   nextTick(() => {
     form.value?.resetValidation();
@@ -653,13 +682,11 @@ const saveFactura = async () => {
   try {
     saving.value = true;
     const itemData = {
-      tipo: editedItem.value.tipo,
-      propiedadId: editedItem.value.propiedadId,
-      propiedadNombre: editedItem.value.propiedadNombre,
-      importe: editedItem.value.importe.replace(',', '.'),
-      fechaInicio: new Date(editedItem.value.fechaInicio).toISOString(),
-      fechaFin: new Date(editedItem.value.fechaFin).toISOString(),
-      estado: editedItem.value.estado || 'pendiente',
+      ...editedItem.value,
+      fechaInicio: editedItem.value.fechaInicio,
+      fechaFin: editedItem.value.fechaFin,
+      fechaPago: editedItem.value.estado === 'pagada' ? editedItem.value.fechaPago : null,
+      importePagado: editedItem.value.estado === 'pagada' ? editedItem.value.importePagado : null,
       updatedAt: new Date().toISOString(),
       updatedBy: user.value.uid,
     };
@@ -785,29 +812,28 @@ const registrarPago = async () => {
   }
 };
 
-// Modificar la función toggleEstado
+// Cambiar estado
 const toggleEstado = async (item) => {
-  if (item.estado === 'pagada') {
-    // Si está pagada, simplemente marcar como pendiente
-    try {
-      await setDoc(
-        doc(db, 'facturas', item.id),
-        {
-          estado: 'pendiente',
-          importePagado: null,
-          fechaPago: null,
-          updatedAt: new Date().toISOString(),
-          updatedBy: user.value.uid,
-        },
-        { merge: true }
-      );
-      item.estado = 'pendiente';
-    } catch (error) {
-      console.error('Error al cambiar estado:', error);
+  try {
+    if (item.estado === 'pendiente') {
+      // Si está pendiente, abrir el diálogo de pago
+      openDialogPago(item);
+    } else {
+      // Si está pagada, marcar como pendiente directamente
+      const updateData = {
+        estado: 'pendiente',
+        fechaPago: null,
+        importePagado: null,
+        updatedAt: new Date().toISOString(),
+        updatedBy: user.value.uid,
+      };
+
+      await setDoc(doc(db, 'facturas', item.id), updateData, { merge: true });
+      Object.assign(item, updateData);
+      await loadFacturas();
     }
-  } else {
-    // Si está pendiente, abrir el diálogo de pago
-    openDialogPago(item);
+  } catch (error) {
+    console.error('Error al cambiar estado:', error);
   }
 };
 
