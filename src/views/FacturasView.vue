@@ -74,6 +74,8 @@
               :color="item.estado === 'pagada' ? 'success' : 'warning'"
               :text="item.estado === 'pagada' ? 'Pagada' : 'Pendiente'"
               size="small"
+              class="cursor-pointer"
+              @click.stop="toggleEstado(item)"
             ></v-chip>
           </template>
 
@@ -98,16 +100,6 @@
               :title="'Eliminar factura del sistema'"
             >
               <v-icon>mdi-trash-can-outline</v-icon>
-            </v-btn>
-            <v-btn
-              icon
-              variant="text"
-              size="small"
-              :color="item.estado === 'pagada' ? 'warning' : 'success'"
-              @click.stop="toggleEstado(item)"
-              :title="item.estado === 'pagada' ? 'Marcar como pendiente' : 'Marcar como pagada'"
-            >
-              <v-icon>{{ item.estado === 'pagada' ? 'mdi-cash-remove' : 'mdi-cash-check' }}</v-icon>
             </v-btn>
           </template>
 
@@ -900,5 +892,13 @@ onMounted(async () => {
 .search-field :deep(.v-field--focused .v-field__outline__start),
 .search-field :deep(.v-field--focused .v-field__outline__end) {
   opacity: 0.2;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover {
+  opacity: 0.8;
 }
 </style>
