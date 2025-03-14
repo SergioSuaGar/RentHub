@@ -60,9 +60,9 @@
               :color="item.estado ? 'success' : 'error'"
               :text="item.estado ? 'Activa' : 'Inactiva'"
               size="small"
-              :title="
-                item.estado ? 'Propiedad activa en el sistema' : 'Propiedad inactiva en el sistema'
-              "
+              class="cursor-pointer"
+              @click.stop="toggleEstado(item)"
+              :title="item.estado ? 'Hacer click para desactivar' : 'Hacer click para activar'"
             ></v-chip>
           </template>
 
@@ -88,16 +88,6 @@
               :title="'Eliminar propiedad del sistema'"
             >
               <v-icon>mdi-trash-can-outline</v-icon>
-            </v-btn>
-            <v-btn
-              icon
-              variant="text"
-              size="small"
-              :color="item.estado ? 'warning' : 'success'"
-              @click.stop="toggleEstado(item)"
-              :title="item.estado ? 'Desactivar propiedad' : 'Activar propiedad'"
-            >
-              <v-icon>{{ item.estado ? 'mdi-close' : 'mdi-check' }}</v-icon>
             </v-btn>
           </template>
 
@@ -282,7 +272,13 @@ const defaultItem = {
 const headers = [
   { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
   { title: 'Nombre', key: 'nombre', align: 'start', sortable: true },
-  { title: 'Estado', key: 'estado', align: 'center', sortable: true },
+  {
+    title: 'Estado',
+    key: 'estado',
+    align: 'center',
+    sortable: false,
+    headerProps: { align: 'center' },
+  },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
 ];
 
@@ -559,5 +555,13 @@ onMounted(async () => {
 .search-field :deep(.v-field--focused .v-field__outline__start),
 .search-field :deep(.v-field--focused .v-field__outline__end) {
   opacity: 0.2;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover {
+  opacity: 0.8;
 }
 </style>
