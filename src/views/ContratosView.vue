@@ -63,6 +63,17 @@
             {{ formatDateShort(item.fechaRenovacion) }}
           </template>
 
+          <!-- Columna de estado de renovación -->
+          <template #[`item.estadoRenovacion`]="{ item }">
+            <v-chip
+              :color="calcularEstadoRenovacion(item.fechaRenovacion).color"
+              :text="calcularEstadoRenovacion(item.fechaRenovacion).estado"
+              size="small"
+              @click.stop="handleEstadoRenovacionClick(item)"
+              style="cursor: pointer"
+            ></v-chip>
+          </template>
+
           <!-- Columna de estado -->
           <template #[`item.estado`]="{ item }">
             <v-chip
@@ -309,6 +320,96 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Diálogo de Renovación -->
+    <v-dialog v-model="dialogRenovacion" max-width="500px">
+      <v-card>
+        <v-card-title class="text-h5">Renovar Contrato</v-card-title>
+        <v-card-text>
+          <v-form ref="formRenovacion" v-model="formRenovacionValid" lazy-validation>
+            <v-container>
+              <v-row>
+                <v-col cols="12">
+                  <div class="text-subtitle-1 mb-2">¿Deseas renovar el contrato?</div>
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    type="date"
+                    v-model="editedItem.fechaRenovacion"
+                    label="Nueva Fecha de Renovación"
+                    :hint="'Selecciona la nueva fecha de renovación'"
+                    persistent-hint
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="secondary" variant="text" @click="dialogRenovacion = false">
+            Cancelar
+          </v-btn>
+          <v-btn color="primary" variant="text" @click="renovarContrato" :loading="saving">
+            Renovar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Diálogo de Ajuste IPC -->
+    <v-dialog v-model="dialogAjusteIPC" max-width="500px">
+      <v-card>
+        <v-card-title class="text-h5">Ajustar Precio por IPC</v-card-title>
+        <v-card-text>
+          <v-form ref="formAjusteIPC" v-model="formAjusteIPCValid" lazy-validation>
+            <v-container>
+              <v-row>
+                <v-col cols="12">
+                  <div class="text-subtitle-1 mb-2">Precio Actual:</div>
+                  <div class="text-h6 mb-4">{{ formatCurrency(ajusteIPCData.precioActual) }}</div>
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="ajusteIPCData.incrementoIPC"
+                    label="Incremento IPC (%) *"
+                    :rules="[rules.required, rules.incrementoIPC]"
+                    required
+                    :hint="'Introduce el porcentaje de incremento del IPC'"
+                    persistent-hint
+                    @input="
+                      ajusteIPCData.nuevoPrecio = calcularNuevoPrecio(
+                        ajusteIPCData.precioActual,
+                        ajusteIPCData.incrementoIPC
+                      )
+                    "
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" v-if="ajusteIPCData.nuevoPrecio">
+                  <div class="text-subtitle-1 mb-2">Nuevo Precio:</div>
+                  <div class="text-h6">{{ formatCurrency(ajusteIPCData.nuevoPrecio) }}</div>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="secondary" variant="text" @click="dialogAjusteIPC = false">
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="ajustarIPC"
+            :loading="saving"
+            :disabled="!ajusteIPCData.nuevoPrecio"
+          >
+            Ajustar Precio
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -362,9 +463,25 @@ const headers = [
   { title: 'Precio', key: 'precio', align: 'end', sortable: true },
   { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
   { title: 'Fecha Renovación', key: 'fechaRenovacion', align: 'start', sortable: true },
+  { title: 'Estado Renovación', key: 'estadoRenovacion', align: 'center', sortable: true },
   { title: 'Estado', key: 'estado', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
 ];
+
+// Variables para los diálogos de renovación y ajuste IPC
+const dialogRenovacion = ref(false);
+const dialogAjusteIPC = ref(false);
+const formRenovacion = ref(null);
+const formAjusteIPC = ref(null);
+const formRenovacionValid = ref(false);
+const formAjusteIPCValid = ref(false);
+
+// Variables para el ajuste IPC
+const ajusteIPCData = ref({
+  precioActual: '',
+  incrementoIPC: '',
+  nuevoPrecio: '',
+});
 
 // Reglas de validación
 const form = ref(null);
@@ -377,6 +494,11 @@ const rules = {
     if (!v) return true;
     const pattern = /^\d+(?:,\d{1,2})?$/;
     return pattern.test(v) || 'Formato inválido. Use coma para decimales (ej: 123,45)';
+  },
+  incrementoIPC: (v) => {
+    if (!v) return true;
+    const num = parseFloat(v.replace(',', '.'));
+    return (num >= 0 && num <= 100) || 'El incremento debe estar entre 0 y 100';
   },
 };
 
@@ -668,6 +790,105 @@ const toggleEstado = async (item) => {
     item.estado = newEstado;
   } catch (error) {
     console.error('Error al cambiar estado:', error);
+  }
+};
+
+// Función para calcular el estado de renovación
+const calcularEstadoRenovacion = (fechaRenovacion) => {
+  if (!fechaRenovacion) return { estado: 'Vigente', color: 'success' };
+
+  const fechaRenovacionObj = new Date(fechaRenovacion);
+  const hoy = new Date();
+
+  // Establecer las horas a 0 para comparar solo fechas
+  fechaRenovacionObj.setHours(0, 0, 0, 0);
+  hoy.setHours(0, 0, 0, 0);
+
+  if (fechaRenovacionObj <= hoy) {
+    return { estado: 'Pendiente de Renovación', color: 'error' };
+  }
+
+  return { estado: 'Vigente', color: 'success' };
+};
+
+// Función para calcular el nuevo precio con IPC
+const calcularNuevoPrecio = (precioActual, incrementoIPC) => {
+  if (!precioActual || !incrementoIPC) return '';
+  const precio = parseFloat(precioActual.replace(',', '.'));
+  const incremento = parseFloat(incrementoIPC.replace(',', '.'));
+  const nuevoPrecio = precio * (1 + incremento / 100);
+  return nuevoPrecio.toFixed(2).replace('.', ',');
+};
+
+// Función para manejar el clic en el estado de renovación
+const handleEstadoRenovacionClick = (item) => {
+  const estado = calcularEstadoRenovacion(item.fechaRenovacion).estado;
+
+  if (estado === 'Pendiente de Renovación') {
+    // Abrir diálogo de renovación
+    editedItem.value = { ...item };
+    dialogRenovacion.value = true;
+  } else if (estado === 'Pendiente de Ajuste IPC') {
+    // Abrir diálogo de ajuste IPC
+    editedItem.value = { ...item };
+    ajusteIPCData.value = {
+      precioActual: item.precio.toString().replace('.', ','),
+      incrementoIPC: '',
+      nuevoPrecio: '',
+    };
+    dialogAjusteIPC.value = true;
+  }
+};
+
+// Función para renovar contrato
+const renovarContrato = async () => {
+  try {
+    saving.value = true;
+    const fechaRenovacion = new Date(editedItem.value.fechaRenovacion);
+
+    await setDoc(
+      doc(db, 'contratos', editedItem.value.id),
+      {
+        fechaRenovacion: fechaRenovacion.toISOString(),
+        updatedAt: new Date(),
+        updatedBy: user.value.uid,
+      },
+      { merge: true }
+    );
+
+    dialogRenovacion.value = false;
+    await loadContratos();
+  } catch (error) {
+    console.error('Error al renovar contrato:', error);
+  } finally {
+    saving.value = false;
+  }
+};
+
+// Función para ajustar IPC
+const ajustarIPC = async () => {
+  if (!formAjusteIPCValid.value) return;
+
+  try {
+    saving.value = true;
+    const nuevoPrecio = ajusteIPCData.value.nuevoPrecio.replace(',', '.');
+
+    await setDoc(
+      doc(db, 'contratos', editedItem.value.id),
+      {
+        precio: nuevoPrecio,
+        updatedAt: new Date(),
+        updatedBy: user.value.uid,
+      },
+      { merge: true }
+    );
+
+    dialogAjusteIPC.value = false;
+    await loadContratos();
+  } catch (error) {
+    console.error('Error al ajustar IPC:', error);
+  } finally {
+    saving.value = false;
   }
 };
 
