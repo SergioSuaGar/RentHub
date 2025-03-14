@@ -80,6 +80,8 @@
               :color="item.estado ? 'success' : 'error'"
               :text="item.estado ? 'Activo' : 'Inactivo'"
               size="small"
+              @click.stop="toggleEstado(item)"
+              style="cursor: pointer"
             ></v-chip>
           </template>
 
@@ -104,16 +106,6 @@
               :title="'Eliminar contrato del sistema'"
             >
               <v-icon>mdi-trash-can-outline</v-icon>
-            </v-btn>
-            <v-btn
-              icon
-              variant="text"
-              size="small"
-              :color="item.estado ? 'warning' : 'success'"
-              @click.stop="toggleEstado(item)"
-              :title="item.estado ? 'Desactivar contrato' : 'Activar contrato'"
-            >
-              <v-icon>{{ item.estado ? 'mdi-close' : 'mdi-check' }}</v-icon>
             </v-btn>
           </template>
 
@@ -462,9 +454,26 @@ const headers = [
   { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
   { title: 'Precio', key: 'precio', align: 'end', sortable: true },
   { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
-  { title: 'Fecha Renovación', key: 'fechaRenovacion', align: 'start', sortable: true },
-  { title: 'Estado Renovación', key: 'estadoRenovacion', align: 'center', sortable: true },
-  { title: 'Estado', key: 'estado', align: 'center', sortable: true },
+  {
+    title: 'Fecha Renovación',
+    key: 'fechaRenovacion',
+    align: 'start',
+    sortable: true,
+  },
+  {
+    title: 'Estado Renovación',
+    key: 'estadoRenovacion',
+    align: 'center',
+    sortable: false,
+    headerProps: { align: 'center' },
+  },
+  {
+    title: 'Estado',
+    key: 'estado',
+    align: 'center',
+    sortable: false,
+    headerProps: { align: 'center' },
+  },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
 ];
 
