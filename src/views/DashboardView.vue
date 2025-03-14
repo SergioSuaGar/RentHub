@@ -437,8 +437,9 @@ const loadFacturas = async (propiedadId = null) => {
         if (esDelMes) {
           const importe = parseFloat(factura.importe.toString().replace(',', '.'));
           esperadoMes += importe;
-          if (factura.estado === 'pagada') {
-            cobradoMes += importe;
+          if (factura.estado === 'pagada' && factura.importePagado) {
+            const importePagado = parseFloat(factura.importePagado.toString().replace(',', '.'));
+            cobradoMes += importePagado;
           }
         }
 
