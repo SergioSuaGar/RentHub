@@ -138,7 +138,7 @@
                   <v-icon icon="mdi-cash-multiple" size="large" color="error" class="me-2"></v-icon>
                   <span class="text-truncate">Gastos Anuales {{ añoActual }}</span>
                 </div>
-                <div class="flex-shrink-0">
+                <div class="flex-shrink-0 d-flex justify-sm-end justify-center w-100 w-sm-auto">
                   <span class="text-h5">{{ formatCurrency(totalGastosAnuales) }}</span>
                 </div>
               </v-card-title>
