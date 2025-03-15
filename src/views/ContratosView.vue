@@ -476,7 +476,13 @@ const defaultItem = {
 
 // Headers de la tabla
 const headers = [
-  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
+  {
+    title: 'Estado Renovación',
+    key: 'estadoRenovacion',
+    align: 'center',
+    sortable: false,
+    headerProps: { align: 'center' },
+  },
   { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
   { title: 'Precio', key: 'precio', align: 'end', sortable: true },
   { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
@@ -487,13 +493,6 @@ const headers = [
     sortable: true,
   },
   {
-    title: 'Estado Renovación',
-    key: 'estadoRenovacion',
-    align: 'center',
-    sortable: false,
-    headerProps: { align: 'center' },
-  },
-  {
     title: 'Estado',
     key: 'estado',
     align: 'center',
@@ -501,6 +500,7 @@ const headers = [
     headerProps: { align: 'center' },
   },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
+  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
 ];
 
 // Variables para los diálogos de renovación y ajuste IPC

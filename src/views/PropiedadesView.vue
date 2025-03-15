@@ -270,7 +270,6 @@ const defaultItem = {
 
 // Headers de la tabla
 const headers = [
-  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
   { title: 'Nombre', key: 'nombre', align: 'start', sortable: true },
   {
     title: 'Estado',
@@ -280,6 +279,7 @@ const headers = [
     headerProps: { align: 'center' },
   },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
+  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
 ];
 
 // Reglas de validación

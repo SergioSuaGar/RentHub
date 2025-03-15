@@ -345,7 +345,6 @@ const defaultItem = {
 
 // Headers de la tabla
 const headers = [
-  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
   { title: 'Nombre', key: 'nombre', align: 'start', sortable: true },
   { title: 'Apellidos', key: 'apellidos', align: 'start', sortable: true },
   { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
@@ -357,6 +356,7 @@ const headers = [
     headerProps: { align: 'center' },
   },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
+  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
 ];
 
 // Reglas de validación

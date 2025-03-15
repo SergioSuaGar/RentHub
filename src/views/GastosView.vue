@@ -363,7 +363,6 @@ const defaultItem = {
 
 // Headers de la tabla
 const headers = [
-  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
   { title: 'Tipo', key: 'tipo', align: 'start', sortable: true },
   { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
   { title: 'Fecha', key: 'fecha', align: 'start', sortable: true },
@@ -372,6 +371,7 @@ const headers = [
   { title: 'Nº Cuotas', key: 'cantidadCuotas', align: 'end', sortable: true },
   { title: 'Total', key: 'importeTotal', align: 'end', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
+  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
 ];
 
 // Reglas de validación
@@ -400,7 +400,22 @@ const formTitle = computed(() => {
 // Formatear moneda
 const formatCurrency = (value) => {
   if (!value) return '0 €';
-  return `${value} €`;
+
+  // Si el valor ya tiene una coma, lo procesamos
+  if (typeof value === 'string' && value.includes(',')) {
+    // Si termina en ,00 eliminamos los decimales
+    if (value.endsWith(',00')) {
+      return `${value.slice(0, -3)} €`;
+    }
+    return `${value} €`;
+  }
+
+  // Si es un número o string sin coma
+  const numero = parseFloat(value.toString().replace(',', '.'));
+  if (Number.isInteger(numero)) {
+    return `${numero} €`;
+  }
+  return `${numero.toFixed(2).replace('.', ',')} €`;
 };
 
 // Formatear fecha

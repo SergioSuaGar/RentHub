@@ -438,13 +438,6 @@ const defaultItem = {
 
 // Headers de la tabla
 const headers = [
-  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
-  { title: 'Tipo', key: 'tipo', align: 'start', sortable: true },
-  { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
-  { title: 'Importe', key: 'importe', align: 'end', sortable: true },
-  { title: 'Pagado', key: 'importePagado', align: 'end', sortable: true },
-  { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
-  { title: 'Fecha Fin', key: 'fechaFin', align: 'start', sortable: true },
   {
     title: 'Estado',
     key: 'estado',
@@ -452,7 +445,14 @@ const headers = [
     sortable: false,
     headerProps: { align: 'center' },
   },
+  { title: 'Tipo', key: 'tipo', align: 'start', sortable: true },
+  { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
+  { title: 'Importe', key: 'importe', align: 'end', sortable: true },
+  { title: 'Pagado', key: 'importePagado', align: 'end', sortable: true },
+  { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
+  { title: 'Fecha Fin', key: 'fechaFin', align: 'start', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
+  { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
 ];
 
 // Reglas de validación
