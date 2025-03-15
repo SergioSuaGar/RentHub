@@ -2,12 +2,13 @@
   <div class="user-menu">
     <v-menu location="bottom end" :close-on-content-click="true">
       <template v-slot:activator="{ props }">
-        <v-btn icon v-bind="props">
+        <v-btn v-bind="props" class="user-menu-btn" variant="text" :title="'Menú de usuario'">
           <UserAvatar
             :photo-URL="user?.photoURL || null"
             :display-name="user?.nombre || ''"
             size="32"
           />
+          <v-icon icon="mdi-chevron-down" size="small" class="ms-1" />
         </v-btn>
       </template>
 
@@ -73,6 +74,16 @@ const handleLogout = async () => {
 <style scoped>
 .user-menu {
   margin-left: auto;
+}
+
+.user-menu-btn {
+  min-width: 0;
+  padding: 0 4px;
+  height: 40px;
+}
+
+.user-menu-btn:hover {
+  background-color: rgba(var(--v-theme-on-surface), 0.04);
 }
 
 .user-menu-card {

@@ -3,7 +3,8 @@
   <v-avatar :size="size" :class="['user-avatar', sizeClass]">
     <v-img v-if="photoURL" :src="photoURL" :alt="displayName || 'Usuario'" cover />
     <div v-else class="initial-avatar" :style="avatarStyle">
-      {{ initials }}
+      <template v-if="initials">{{ initials }}</template>
+      <v-icon v-else :size="iconSize" color="white">mdi-account</v-icon>
     </div>
   </v-avatar>
 </template>
@@ -28,7 +29,7 @@ const props = defineProps({
 
 // Generar iniciales del nombre
 const initials = computed(() => {
-  if (!props.displayName) return '?';
+  if (!props.displayName) return '';
   return props.displayName
     .split(' ')
     .map((name) => name[0])
@@ -37,9 +38,15 @@ const initials = computed(() => {
     .slice(0, 2);
 });
 
-// Generar un color basado en el nombre
+// Calcular tamaño del icono basado en el tamaño del avatar
+const iconSize = computed(() => {
+  const size = parseInt(props.size);
+  return Math.max(16, Math.floor(size * 0.6));
+});
+
+// Generar un color basado en el nombre o usar un color por defecto
 const backgroundColor = computed(() => {
-  if (!props.displayName) return '#757575';
+  if (!props.displayName) return '#9E9E9E'; // Color gris por defecto
 
   const colors = [
     '#F44336',
@@ -83,6 +90,7 @@ const avatarStyle = computed(() => ({
 <style scoped>
 .user-avatar {
   font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  cursor: pointer;
 }
 
 .initial-avatar {
