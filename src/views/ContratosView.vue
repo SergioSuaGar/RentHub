@@ -85,6 +85,26 @@
             ></v-chip>
           </template>
 
+          <!-- Columna de inquilinos -->
+          <template #[`item.inquilinosIds`]>
+            <v-select
+              v-model="editedItem.inquilinosIds"
+              :items="inquilinos"
+              item-title="nombreCompleto"
+              item-value="id"
+              label="Inquilinos *"
+              :rules="[rules.required, rules.inquilinosRequired]"
+              required
+              multiple
+              chips
+              closable-chips
+              searchable
+              :hint="'Selecciona los inquilinos del contrato'"
+              persistent-hint
+              @update:model-value="updateInquilinosNombres"
+            ></v-select>
+          </template>
+
           <!-- Columna de acciones -->
           <template #[`item.actions`]="{ item }">
             <v-btn
@@ -213,7 +233,7 @@
                     item-title="nombreCompleto"
                     item-value="id"
                     label="Inquilinos *"
-                    :rules="[rules.required]"
+                    :rules="[rules.required, rules.inquilinosRequired]"
                     required
                     multiple
                     chips
@@ -504,11 +524,7 @@ const rules = {
     const pattern = /^\d+(?:,\d{1,2})?$/;
     return pattern.test(v) || 'Formato inválido. Use coma para decimales (ej: 123,45)';
   },
-  incrementoIPC: (v) => {
-    if (!v) return true;
-    const num = parseFloat(v.replace(',', '.'));
-    return (num >= 0 && num <= 100) || 'El incremento debe estar entre 0 y 100';
-  },
+  inquilinosRequired: (v) => (v && v.length > 0) || 'Debe seleccionar al menos un inquilino',
 };
 
 // Título del formulario
@@ -606,52 +622,13 @@ const calcularFechaRenovacion = (fechaInicio) => {
   editedItem.value.fechaRenovacion = fecha.toISOString().split('T')[0];
 };
 
-// Cargar propiedades activas
-const loadPropiedades = async () => {
-  try {
-    const q = query(collection(db, 'propiedades'), where('estado', '==', true));
-    const querySnapshot = await getDocs(q);
-    propiedades.value = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-  } catch (error) {
-    console.error('Error al cargar propiedades:', error);
-  }
-};
-
-// Cargar inquilinos activos
-const loadInquilinos = async () => {
-  try {
-    const q = query(collection(db, 'inquilinos'), where('estado', '==', true));
-    const querySnapshot = await getDocs(q);
-
-    // Obtener todos los contratos activos
-    const contratosActivos = contratos.value.filter((c) => c.estado);
-    const inquilinosConContrato = new Set();
-    contratosActivos.forEach((contrato) => {
-      contrato.inquilinosIds.forEach((id) => inquilinosConContrato.add(id));
-    });
-
-    inquilinos.value = querySnapshot.docs
-      .map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          nombreCompleto: `${data.nombre} ${data.apellidos}`,
-        };
-      })
-      .filter((inquilino) => !inquilinosConContrato.has(inquilino.id));
-  } catch (error) {
-    console.error('Error al cargar inquilinos:', error);
-  }
-};
-
 // Cargar contratos
 const loadContratos = async () => {
   loading.value = true;
   try {
+    // Primero cargamos las propiedades para tener los nombres disponibles
+    await loadPropiedades();
+
     const q = query(collection(db, 'contratos'));
     const querySnapshot = await getDocs(q);
     contratos.value = querySnapshot.docs.map((doc) => {
@@ -664,10 +641,93 @@ const loadContratos = async () => {
       };
     });
     totalItems.value = contratos.value.length;
+
+    // Después de cargar los contratos, actualizamos los inquilinos disponibles
+    await loadInquilinos();
   } catch (error) {
     console.error('Error al cargar contratos:', error);
   } finally {
     loading.value = false;
+  }
+};
+
+// Cargar propiedades activas
+const loadPropiedades = async () => {
+  try {
+    // Primero obtenemos las propiedades activas
+    const q = query(collection(db, 'propiedades'), where('estado', '==', true));
+    const querySnapshot = await getDocs(q);
+    const todasLasPropiedades = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    if (dialog.value) {
+      // Si el diálogo está abierto, filtramos las propiedades según el estado de edición
+      const contratosActivos = contratos.value.filter((c) => c.estado);
+      const propiedadesConContrato = new Set(contratosActivos.map((c) => c.propiedadId));
+
+      // Si estamos editando, incluimos la propiedad del contrato actual
+      if (editedIndex.value > -1) {
+        const propiedadActual = editedItem.value.propiedadId;
+        propiedades.value = todasLasPropiedades.filter(
+          (propiedad) =>
+            !propiedadesConContrato.has(propiedad.id) || propiedad.id === propiedadActual
+        );
+      } else {
+        // Si es nuevo contrato, solo mostramos propiedades sin contrato activo
+        propiedades.value = todasLasPropiedades.filter(
+          (propiedad) => !propiedadesConContrato.has(propiedad.id)
+        );
+      }
+    } else {
+      // Si no está el diálogo abierto, mostramos todas las propiedades activas
+      propiedades.value = todasLasPropiedades;
+    }
+  } catch (error) {
+    console.error('Error al cargar propiedades:', error);
+  }
+};
+
+// Cargar inquilinos activos
+const loadInquilinos = async () => {
+  try {
+    const q = query(collection(db, 'inquilinos'), where('estado', '==', true));
+    const querySnapshot = await getDocs(q);
+    const todosLosInquilinos = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        nombreCompleto: `${data.nombre} ${data.apellidos}`,
+      };
+    });
+
+    // Obtenemos los contratos activos
+    const contratosActivos = contratos.value.filter((c) => c.estado);
+    const inquilinosConContrato = new Set();
+    contratosActivos.forEach((contrato) => {
+      if (contrato.id !== editedItem.value.id) {
+        // No excluir inquilinos del contrato actual si estamos editando
+        contrato.inquilinosIds.forEach((id) => inquilinosConContrato.add(id));
+      }
+    });
+
+    // Si estamos editando, incluimos los inquilinos del contrato actual
+    if (editedIndex.value > -1) {
+      const inquilinosActuales = new Set(editedItem.value.inquilinosIds);
+      inquilinos.value = todosLosInquilinos.filter(
+        (inquilino) =>
+          !inquilinosConContrato.has(inquilino.id) || inquilinosActuales.has(inquilino.id)
+      );
+    } else {
+      // Si es nuevo contrato, solo mostramos inquilinos sin contrato activo
+      inquilinos.value = todosLosInquilinos.filter(
+        (inquilino) => !inquilinosConContrato.has(inquilino.id)
+      );
+    }
+  } catch (error) {
+    console.error('Error al cargar inquilinos:', error);
   }
 };
 
@@ -676,11 +736,14 @@ const openDialog = (item) => {
   editedIndex.value = item ? contratos.value.indexOf(item) : -1;
   editedItem.value = item ? { ...item } : { ...defaultItem };
   dialog.value = true;
-  nextTick(() => {
+  nextTick(async () => {
     form.value?.resetValidation();
     if (item) {
       formValid.value = true;
     }
+    // Recargar las listas filtradas después de establecer editedItem
+    await loadPropiedades();
+    await loadInquilinos();
   });
 };
 
@@ -929,9 +992,7 @@ const ajustarIPC = async () => {
 
 // Cargar datos iniciales
 onMounted(async () => {
-  await loadPropiedades();
-  await loadInquilinos();
-  await loadContratos();
+  await loadContratos(); // Esto cargará propiedades e inquilinos después
 });
 </script>
 
