@@ -19,7 +19,7 @@
         <!-- Primera fila: Facturas Mes y Pendientes -->
         <v-row>
           <!-- Resumen de facturas -->
-          <v-col cols="12" md="6" lg="3">
+          <v-col cols="12" md="6" lg="6">
             <v-card class="cursor-pointer" @click="router.push('/facturas')">
               <v-card-item>
                 <v-card-title>
@@ -43,7 +43,7 @@
           </v-col>
 
           <!-- Facturas pendientes -->
-          <v-col cols="12" md="6" lg="3">
+          <v-col cols="12" md="6" lg="6">
             <v-card class="cursor-pointer" @click="router.push('/facturas')">
               <v-card-item>
                 <v-card-title>
@@ -130,36 +130,73 @@
 
         <!-- Tercera fila: Propiedades e Inquilinos -->
         <v-row class="mt-4">
-          <!-- Resumen de propiedades -->
-          <v-col cols="12" md="6" lg="3">
-            <v-card class="cursor-pointer" @click="router.push('/propiedades')">
-              <v-card-item>
-                <v-card-title>
-                  <v-icon icon="mdi-home" class="me-2" color="primary"></v-icon>
-                  Propiedades
-                </v-card-title>
-                <v-card-subtitle class="mt-2">
-                  <span class="text-h4">{{ propiedadesActivas.length }}</span>
-                  <span class="text-caption ms-2">Activas</span>
-                </v-card-subtitle>
-              </v-card-item>
+          <!-- Widget unificado de Gastos -->
+          <v-col cols="12" md="6">
+            <v-card class="cursor-pointer" @click="router.push('/gastos')">
+              <v-card-title class="d-flex flex-wrap align-center pa-4 gap-2">
+                <div class="d-flex align-center flex-grow-1">
+                  <v-icon icon="mdi-cash-multiple" size="large" color="error" class="me-2"></v-icon>
+                  <span class="text-truncate">Gastos Anuales {{ añoActual }}</span>
+                </div>
+                <div class="flex-shrink-0">
+                  <span class="text-h5">{{ formatCurrency(totalGastosAnuales) }}</span>
+                </div>
+              </v-card-title>
+              <v-divider></v-divider>
+              <v-card-text class="pa-4">
+                <v-row dense>
+                  <v-col v-for="(total, tipo) in gastosPorTipo" :key="tipo" cols="6">
+                    <div class="d-flex align-center justify-space-between py-2">
+                      <div class="text-subtitle-2">{{ tipo }}</div>
+                      <div class="text-h6">{{ formatCurrency(total) }}</div>
+                    </div>
+                    <v-progress-linear
+                      :model-value="calcularPorcentaje(total)"
+                      :color="getColorForTipo(tipo)"
+                      height="4"
+                      class="mb-2"
+                    ></v-progress-linear>
+                  </v-col>
+                </v-row>
+              </v-card-text>
             </v-card>
           </v-col>
 
-          <!-- Resumen de inquilinos -->
-          <v-col cols="12" md="6" lg="3">
-            <v-card class="cursor-pointer" @click="router.push('/inquilinos')">
-              <v-card-item>
-                <v-card-title>
-                  <v-icon icon="mdi-account-group" class="me-2" color="info"></v-icon>
-                  Inquilinos
-                </v-card-title>
-                <v-card-subtitle class="mt-2">
-                  <span class="text-h4">{{ inquilinosActivos.length }}</span>
-                  <span class="text-caption ms-2">Activos</span>
-                </v-card-subtitle>
-              </v-card-item>
-            </v-card>
+          <!-- Columna derecha con Propiedades e Inquilinos -->
+          <v-col cols="12" md="6">
+            <v-row>
+              <!-- Resumen de propiedades -->
+              <v-col cols="12">
+                <v-card class="cursor-pointer" @click="router.push('/propiedades')">
+                  <v-card-item>
+                    <v-card-title>
+                      <v-icon icon="mdi-home" class="me-2" color="primary"></v-icon>
+                      Propiedades
+                    </v-card-title>
+                    <v-card-subtitle class="mt-2">
+                      <span class="text-h4">{{ propiedadesActivas.length }}</span>
+                      <span class="text-caption ms-2">Activas</span>
+                    </v-card-subtitle>
+                  </v-card-item>
+                </v-card>
+              </v-col>
+
+              <!-- Resumen de inquilinos -->
+              <v-col cols="12">
+                <v-card class="cursor-pointer" @click="router.push('/inquilinos')">
+                  <v-card-item>
+                    <v-card-title>
+                      <v-icon icon="mdi-account-group" class="me-2" color="info"></v-icon>
+                      Inquilinos
+                    </v-card-title>
+                    <v-card-subtitle class="mt-2">
+                      <span class="text-h4">{{ inquilinosActivos.length }}</span>
+                      <span class="text-caption ms-2">Activos</span>
+                    </v-card-subtitle>
+                  </v-card-item>
+                </v-card>
+              </v-col>
+            </v-row>
           </v-col>
         </v-row>
 
@@ -292,6 +329,14 @@ const propiedades = ref([]);
 const totalCobradoMes = ref(0);
 const totalEsperadoMes = ref(0);
 const propiedadesContratosPendientes = ref([]);
+const totalGastosAnuales = ref(0);
+const gastosPorTipo = ref({
+  IBI: 0,
+  Comunidad: 0,
+  Seguro: 0,
+  Legalitas: 0,
+});
+const añoActual = new Date().getFullYear();
 
 // Variables para el formulario
 const dialog = ref(false);
@@ -375,6 +420,9 @@ const loadData = async (propiedadId = null) => {
 
     // Cargar propiedades con contratos pendientes
     await loadPropiedadesContratosPendientes(propiedadId);
+
+    // Cargar gastos
+    await loadGastos(propiedadId);
   } catch (error) {
     console.error('Error al cargar datos:', error);
   }
@@ -612,6 +660,62 @@ const saveFactura = async () => {
 const updatePropiedadNombre = (propiedadId) => {
   const propiedad = propiedades.value.find((p) => p.id === propiedadId);
   editedItem.value.propiedadNombre = propiedad ? propiedad.nombre : '';
+};
+
+// Añadir función para cargar gastos
+const loadGastos = async (propiedadId = null) => {
+  try {
+    let q = query(collection(db, 'gastos'));
+
+    if (propiedadId) {
+      q = query(q, where('propiedadId', '==', propiedadId));
+    }
+
+    const gastosSnapshot = await getDocs(q);
+    let totalAnual = 0;
+    const porTipo = {
+      IBI: 0,
+      Comunidad: 0,
+      Seguro: 0,
+      Legalitas: 0,
+    };
+
+    gastosSnapshot.docs.forEach((doc) => {
+      const gasto = doc.data();
+      const fechaGasto = new Date(gasto.fecha);
+
+      if (fechaGasto.getFullYear() === añoActual) {
+        const importeTotal = parseFloat(gasto.importeTotal.replace(',', '.'));
+        totalAnual += importeTotal;
+
+        if (gasto.tipo in porTipo) {
+          porTipo[gasto.tipo] += importeTotal;
+        }
+      }
+    });
+
+    totalGastosAnuales.value = totalAnual;
+    gastosPorTipo.value = porTipo;
+  } catch (error) {
+    console.error('Error al cargar gastos:', error);
+  }
+};
+
+// Añadir función para obtener color según tipo de gasto
+const getColorForTipo = (tipo) => {
+  const colores = {
+    IBI: 'error',
+    Comunidad: 'primary',
+    Seguro: 'success',
+    Legalitas: 'warning',
+  };
+  return colores[tipo] || 'grey';
+};
+
+// Añadir función para calcular porcentaje
+const calcularPorcentaje = (total) => {
+  if (!totalGastosAnuales.value || total === 0) return 0;
+  return (total / totalGastosAnuales.value) * 100;
 };
 
 // Cargar datos iniciales
