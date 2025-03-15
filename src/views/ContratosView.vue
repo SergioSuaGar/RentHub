@@ -436,6 +436,8 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 import { collection, query, getDocs, doc, setDoc, deleteDoc, where } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
+import { useRoute } from 'vue-router';
+import { sortProperties } from '@/config/propertyOrder';
 
 const { user } = useAuth();
 
@@ -663,10 +665,12 @@ const loadPropiedades = async () => {
     // Primero obtenemos las propiedades activas
     const q = query(collection(db, 'propiedades'), where('estado', '==', true));
     const querySnapshot = await getDocs(q);
-    const todasLasPropiedades = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const todasLasPropiedades = sortProperties(
+      querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+    );
 
     if (dialog.value) {
       // Si el diálogo está abierto, filtramos las propiedades según el estado de edición

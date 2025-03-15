@@ -396,6 +396,7 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 import { collection, query, getDocs, doc, setDoc, deleteDoc, where } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
+import { sortProperties } from '@/config/propertyOrder';
 
 const { user } = useAuth();
 
@@ -663,10 +664,11 @@ const loadPropiedades = async () => {
   try {
     const q = query(collection(db, 'propiedades'), where('estado', '==', true));
     const querySnapshot = await getDocs(q);
-    propiedades.value = querySnapshot.docs.map((doc) => ({
+    const propiedadesData = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+    propiedades.value = sortProperties(propiedadesData);
   } catch (error) {
     console.error('Error al cargar propiedades:', error);
   }

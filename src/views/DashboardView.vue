@@ -316,6 +316,7 @@ import { collection, query, getDocs, doc, setDoc, where, getDoc } from 'firebase
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
 import { useRouter } from 'vue-router';
+import { sortProperties } from '@/config/propertyOrder';
 
 const { user } = useAuth();
 const router = useRouter();
@@ -433,10 +434,13 @@ const loadPropiedades = async () => {
   try {
     const q = query(collection(db, 'propiedades'), where('estado', '==', true));
     const querySnapshot = await getDocs(q);
-    propiedadesActivas.value = querySnapshot.docs.map((doc) => ({
+    const propiedadesData = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+
+    // Aplicar el orden específico
+    propiedadesActivas.value = sortProperties(propiedadesData);
     propiedades.value = propiedadesActivas.value;
   } catch (error) {
     console.error('Error al cargar propiedades:', error);
