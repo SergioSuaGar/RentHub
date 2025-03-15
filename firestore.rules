@@ -92,5 +92,14 @@ service cloud.firestore {
         isInquilino());
       allow write: if isPropietario() || isAdmin();
     }
+
+    // Reglas para la colección de gastos
+    match /gastos/{gastoId} {
+      allow read: if isAuthenticated() && 
+        (isPropietario() || 
+        isAdmin() || 
+        isInquilino());
+      allow write: if isPropietario() || isAdmin();
+    }
   }
 }

@@ -74,6 +74,22 @@ export interface Usuario {
   rol: 'admin' | 'propietario' | 'inquilino';
 }
 
+export interface Gasto {
+  id?: string;
+  tipo: string;
+  propiedadId: string;
+  propiedadNombre: string;
+  fecha: string;
+  concepto: string;
+  costeCuota: string;
+  cantidadCuotas: string;
+  importeTotal: string;
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
 // Configuración de Firebase
 const firebaseConfig = {
   // Aquí necesitarás poner tus credenciales de Firebase

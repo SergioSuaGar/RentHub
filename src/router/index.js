@@ -10,6 +10,7 @@ import InquilinosView from '../views/InquilinosView.vue';
 import FacturasView from '../views/FacturasView.vue';
 import PropiedadesView from '../views/PropiedadesView.vue';
 import ContratosView from '../views/ContratosView.vue';
+import GastosView from '../views/GastosView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -62,30 +63,12 @@ const router = createRouter({
       component: ContratosView,
       meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
     },
-    /*     {
-      path: '/admin/usuarios',
-      name: 'usuarios',
-      component: () => import('../views/admin/UsersView.vue'),
-      meta: { requiresAuth: true, roles: ['admin'] },
-    },
     {
-      path: '/mi-vivienda',
-      name: 'mi-vivienda',
-      component: () => import('../views/tenant/MyPropertyView.vue'),
-      meta: { requiresAuth: true, roles: ['inquilino'] },
+      path: '/gastos',
+      name: 'gastos',
+      component: GastosView,
+      meta: { requiresAuth: true, roles: ['admin', 'propietario'] },
     },
-    {
-      path: '/mis-pagos',
-      name: 'mis-pagos',
-      component: () => import('../views/tenant/MyPaymentsView.vue'),
-      meta: { requiresAuth: true, roles: ['inquilino'] },
-    },
-    {
-      path: '/mis-documentos',
-      name: 'mis-documentos',
-      component: () => import('../views/tenant/MyDocumentsView.vue'),
-      meta: { requiresAuth: true, roles: ['inquilino'] },
-    }, */
   ],
 });
 

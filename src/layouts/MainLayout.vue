@@ -99,8 +99,13 @@ const items = [
   },
   {
     title: 'Facturas',
-    icon: 'mdi-file-document-multiple',
+    icon: 'mdi-file-document-outline',
     to: '/facturas',
+  },
+  {
+    title: 'Gastos',
+    icon: 'mdi-cash-multiple',
+    to: '/gastos',
   },
   {
     title: 'Contratos',
