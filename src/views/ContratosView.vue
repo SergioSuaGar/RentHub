@@ -385,21 +385,27 @@
                   <v-text-field
                     v-model="ajusteIPCData.incrementoIPC"
                     label="Incremento IPC (%) *"
-                    :rules="[rules.required, rules.incrementoIPC]"
+                    :rules="[rules.required, rules.numeric]"
                     required
                     :hint="'Introduce el porcentaje de incremento del IPC'"
                     persistent-hint
                     @input="
-                      ajusteIPCData.nuevoPrecio = calcularNuevoPrecio(
-                        ajusteIPCData.precioActual,
-                        ajusteIPCData.incrementoIPC
-                      )
+                      calcularNuevoPrecio(ajusteIPCData.precioActual, ajusteIPCData.incrementoIPC)
                     "
+                    validate-on-blur
                   ></v-text-field>
                 </v-col>
-                <v-col cols="12" v-if="ajusteIPCData.nuevoPrecio">
-                  <div class="text-subtitle-1 mb-2">Nuevo Precio:</div>
-                  <div class="text-h6">{{ formatCurrency(ajusteIPCData.nuevoPrecio) }}</div>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="ajusteIPCData.nuevoPrecio"
+                    label="Nuevo Precio *"
+                    :rules="[rules.required, rules.numeric]"
+                    required
+                    :hint="'Puedes ajustar manualmente el nuevo precio'"
+                    persistent-hint
+                    @input="formatPrecioIPC"
+                    validate-on-blur
+                  ></v-text-field>
                 </v-col>
               </v-row>
             </v-container>
@@ -415,7 +421,7 @@
             variant="text"
             @click="ajustarIPC"
             :loading="saving"
-            :disabled="!ajusteIPCData.nuevoPrecio"
+            :disabled="!formAjusteIPCValid || !ajusteIPCData.nuevoPrecio"
           >
             Ajustar Precio
           </v-btn>
@@ -889,13 +895,46 @@ const calcularEstadoRenovacion = (fechaRenovacion, ipcAjustado = true) => {
   return { estado: 'Vigente', color: 'success' };
 };
 
-// Función para calcular el nuevo precio con IPC
+// Formatear precio IPC
+const formatPrecioIPC = (event) => {
+  let value = event.target.value;
+  // Permitir solo números y una coma
+  value = value.replace(/[^\d,]/g, '');
+  // Asegurar solo una coma
+  const parts = value.split(',');
+  if (parts.length > 2) {
+    value = parts[0] + ',' + parts.slice(1).join('');
+  }
+  // Limitar a dos decimales
+  if (parts.length === 2 && parts[1].length > 2) {
+    value = parts[0] + ',' + parts[1].slice(0, 2);
+  }
+  // Eliminar coma y decimales si son todos ceros
+  if (parts.length === 2 && /^0*$/.test(parts[1])) {
+    value = parts[0];
+  }
+  ajusteIPCData.value.nuevoPrecio = value;
+};
+
+// Calcular nuevo precio con IPC
 const calcularNuevoPrecio = (precioActual, incrementoIPC) => {
-  if (!precioActual || !incrementoIPC) return '';
+  if (!precioActual || !incrementoIPC) {
+    ajusteIPCData.value.nuevoPrecio = '';
+    return;
+  }
   const precio = parseFloat(precioActual.replace(',', '.'));
   const incremento = parseFloat(incrementoIPC.replace(',', '.'));
   const nuevoPrecio = precio * (1 + incremento / 100);
-  return nuevoPrecio.toFixed(2).replace('.', ',');
+
+  // Convertir a string con 2 decimales y reemplazar punto por coma
+  let precioFormateado = nuevoPrecio.toFixed(2).replace('.', ',');
+
+  // Eliminar decimales si son ceros
+  if (precioFormateado.endsWith(',00')) {
+    precioFormateado = precioFormateado.slice(0, -3);
+  }
+
+  ajusteIPCData.value.nuevoPrecio = precioFormateado;
 };
 
 // Función para convertir fecha ISO a formato de entrada (YYYY-MM-DD)
