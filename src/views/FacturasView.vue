@@ -202,6 +202,7 @@
                     required
                     :hint="'Selecciona el tipo de factura'"
                     persistent-hint
+                    @update:model-value="(v) => actualizarImporte()"
                   ></v-select>
                 </v-col>
                 <v-col cols="12" sm="6">
@@ -215,26 +216,24 @@
                     required
                     :hint="'Selecciona una propiedad'"
                     persistent-hint
-                    @update:model-value="updatePropiedadNombre"
+                    @update:model-value="
+                      async (v) => {
+                        updatePropiedadNombre(v);
+                        await actualizarImporte();
+                      }
+                    "
                   ></v-select>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    v-model="editedItem.importe"
-                    label="Importe *"
-                    :rules="[rules.required, rules.numeric]"
-                    required
-                    :hint="'Introduce el importe (usar coma para decimales)'"
-                    persistent-hint
-                    @input="formatImporte"
-                    validate-on-blur
-                  ></v-text-field>
                 </v-col>
                 <v-col cols="12" sm="6">
                   <v-text-field
                     type="date"
                     :model-value="editedItem.fechaInicio"
-                    @update:model-value="(v) => (editedItem.fechaInicio = v)"
+                    @update:model-value="
+                      async (v) => {
+                        editedItem.fechaInicio = v;
+                        await actualizarImporte();
+                      }
+                    "
                     label="Fecha Inicio *"
                     :rules="[rules.required]"
                     required
@@ -246,12 +245,29 @@
                   <v-text-field
                     type="date"
                     :model-value="editedItem.fechaFin"
-                    @update:model-value="(v) => (editedItem.fechaFin = v)"
+                    @update:model-value="
+                      async (v) => {
+                        editedItem.fechaFin = v;
+                        await actualizarImporte();
+                      }
+                    "
                     label="Fecha Fin *"
                     :rules="[rules.required]"
                     required
                     :hint="'Selecciona la fecha de fin'"
                     persistent-hint
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <v-text-field
+                    v-model="editedItem.importe"
+                    label="Importe *"
+                    :rules="[rules.required, rules.numeric]"
+                    required
+                    :hint="'Introduce el importe (usar coma para decimales)'"
+                    persistent-hint
+                    @input="formatImporte"
+                    validate-on-blur
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -391,6 +407,7 @@ const itemsPerPage = ref(10);
 const totalItems = ref(0);
 const facturas = ref([]);
 const propiedades = ref([]);
+const contratosActivos = ref([]);
 
 // Tipos de factura
 const tiposFactura = ['Luz', 'Agua', 'Agua caliente', 'Cuota piso'];
@@ -570,6 +587,77 @@ const formatImportePagado = (event) => {
   pagoData.value.importePagado = value;
 };
 
+// Cargar contratos activos
+const loadContratosActivos = async () => {
+  try {
+    const q = query(collection(db, 'contratos'), where('estado', '==', true));
+    const querySnapshot = await getDocs(q);
+    contratosActivos.value = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error('Error al cargar contratos activos:', error);
+  }
+};
+
+// Calcular importe proporcional
+const calcularImporteProporcional = (precio, fechaInicio, fechaFin) => {
+  if (!precio || !fechaInicio || !fechaFin) return '';
+
+  const inicio = new Date(fechaInicio);
+  const fin = new Date(fechaFin);
+
+  // Obtener el último día del mes
+  const ultimoDiaMes = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0).getDate();
+
+  // Calcular días ocupados (fin - inicio)
+  const diasOcupados = Math.floor((fin - inicio) / (1000 * 60 * 60 * 24));
+
+  // Convertir el precio a número
+  const precioNumerico = parseFloat(precio.toString().replace(',', '.'));
+
+  // Calcular el precio por día basado en los días reales del mes
+  const precioDiario = precioNumerico / ultimoDiaMes;
+
+  // Calcular el importe total
+  const importeCalculado = precioDiario * diasOcupados;
+
+  // Redondear a 2 decimales y formatear
+  let importeFormateado = importeCalculado.toFixed(2).replace('.', ',');
+
+  // Eliminar decimales si son ceros
+  if (importeFormateado.endsWith(',00')) {
+    importeFormateado = importeFormateado.slice(0, -3);
+  }
+
+  return importeFormateado;
+};
+
+// Actualizar importe cuando cambie el tipo, propiedad o fechas
+const actualizarImporte = async () => {
+  if (editedItem.value.tipo === 'Cuota piso') {
+    // Cargar contratos activos si no se han cargado aún
+    if (contratosActivos.value.length === 0) {
+      await loadContratosActivos();
+    }
+
+    if (editedItem.value.propiedadId) {
+      const contratoActivo = contratosActivos.value.find(
+        (c) => c.propiedadId === editedItem.value.propiedadId
+      );
+
+      if (contratoActivo && editedItem.value.fechaInicio && editedItem.value.fechaFin) {
+        editedItem.value.importe = calcularImporteProporcional(
+          contratoActivo.precio,
+          editedItem.value.fechaInicio,
+          editedItem.value.fechaFin
+        );
+      }
+    }
+  }
+};
+
 // Cargar propiedades activas
 const loadPropiedades = async () => {
   try {
@@ -622,21 +710,16 @@ const dateInputToIso = (inputDate) => {
 // Abrir diálogo
 const openDialog = (item) => {
   editedIndex.value = item ? facturas.value.indexOf(item) : -1;
-  if (item) {
-    editedItem.value = {
-      ...item,
-      fechaInicio: isoToDateInput(item.fechaInicio),
-      fechaFin: isoToDateInput(item.fechaFin),
-      fechaPago: isoToDateInput(item.fechaPago),
-    };
-  } else {
-    editedItem.value = { ...defaultItem };
-  }
+  editedItem.value = item ? { ...item } : { ...defaultItem };
   dialog.value = true;
-  nextTick(() => {
+  nextTick(async () => {
     form.value?.resetValidation();
     if (item) {
       formValid.value = true;
+      // Si estamos editando una factura de tipo 'Cuota piso', cargamos los contratos
+      if (item.tipo === 'Cuota piso') {
+        await loadContratosActivos();
+      }
     }
   });
 };
