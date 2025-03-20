@@ -111,6 +111,17 @@
               icon
               variant="text"
               size="small"
+              color="info"
+              @click.stop="openPdfViewer(item)"
+              :title="'Ver contrato'"
+              class="me-2"
+            >
+              <v-icon>mdi-file-document-outline</v-icon>
+            </v-btn>
+            <v-btn
+              icon
+              variant="text"
+              size="small"
               color="primary"
               @click.stop="openDialog(item)"
               :title="'Editar información del contrato'"
@@ -200,6 +211,9 @@
         </v-data-table>
       </v-card-text>
     </v-card>
+
+    <!-- Componente PdfViewer -->
+    <pdf-viewer v-model="showPdfViewer" :file-path="selectedPdfPath" :title="selectedPdfTitle" />
 
     <!-- Diálogo para crear/editar contrato -->
     <v-dialog v-model="dialog" max-width="800px">
@@ -475,6 +489,7 @@ import { useRoute } from 'vue-router';
 import { sortProperties } from '@/config/propertyOrder';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
 import FileUploader from '@/components/FileUploader.vue';
+import PdfViewer from '@/components/PdfViewer.vue';
 
 const { user } = useAuth();
 
@@ -780,6 +795,23 @@ const loadInquilinos = async () => {
   } catch (error) {
     console.error('Error al cargar inquilinos:', error);
   }
+};
+
+// Variables para el visor de PDF
+const showPdfViewer = ref(false);
+const selectedPdfPath = ref('');
+const selectedPdfTitle = ref('');
+
+// Función para abrir el visor de PDF
+const openPdfViewer = (item) => {
+  if (!item.documentoPath) {
+    // Si no hay documento, mostrar un mensaje
+    alert('No hay documento adjunto para este contrato');
+    return;
+  }
+  selectedPdfPath.value = item.documentoPath;
+  selectedPdfTitle.value = `Contrato - ${item.propiedadNombre}`;
+  showPdfViewer.value = true;
 };
 
 // Abrir diálogo
