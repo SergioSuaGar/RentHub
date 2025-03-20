@@ -277,6 +277,41 @@
                     persistent-hint
                   ></v-text-field>
                 </v-col>
+                <v-col cols="12">
+                  <v-divider class="my-2"></v-divider>
+                  <div class="text-subtitle-1 mb-2">Documento del Contrato</div>
+                  <FileUploader
+                    folder="contratos"
+                    @upload-success="handleFileUploadSuccess"
+                    @upload-error="handleFileUploadError"
+                    :button-text="
+                      editedItem.documentoUrl
+                        ? 'Cambiar PDF del Contrato'
+                        : 'Subir PDF del Contrato'
+                    "
+                  />
+                  <div v-if="editedItem.documentoUrl" class="mt-2">
+                    <v-btn
+                      color="primary"
+                      variant="text"
+                      :href="editedItem.documentoUrl"
+                      target="_blank"
+                      prepend-icon="mdi-file-pdf-box"
+                      class="mr-2"
+                    >
+                      Ver PDF
+                    </v-btn>
+                    <v-btn
+                      color="error"
+                      variant="text"
+                      @click="eliminarDocumento"
+                      prepend-icon="mdi-delete"
+                      :loading="eliminandoDocumento"
+                    >
+                      Eliminar PDF
+                    </v-btn>
+                  </div>
+                </v-col>
               </v-row>
             </v-container>
           </v-form>
@@ -434,10 +469,12 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
 import { collection, query, getDocs, doc, setDoc, deleteDoc, where } from 'firebase/firestore';
-import { db } from '@/services/firebase';
+import { db, storage } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
 import { useRoute } from 'vue-router';
 import { sortProperties } from '@/config/propertyOrder';
+import { ref as storageRef, deleteObject } from 'firebase/storage';
+import FileUploader from '@/components/FileUploader.vue';
 
 const { user } = useAuth();
 
@@ -464,6 +501,8 @@ const editedItem = ref({
   fechaInicio: '',
   fechaRenovacion: '',
   estado: true,
+  documentoUrl: null,
+  documentoPath: null,
 });
 const defaultItem = {
   propiedadId: '',
@@ -474,6 +513,8 @@ const defaultItem = {
   fechaInicio: '',
   fechaRenovacion: '',
   estado: true,
+  documentoUrl: null,
+  documentoPath: null,
 };
 
 // Headers de la tabla
@@ -1030,6 +1071,51 @@ const ajustarIPC = async () => {
     console.error('Error al ajustar IPC:', error);
   } finally {
     saving.value = false;
+  }
+};
+
+const eliminandoDocumento = ref(false);
+
+// Manejar la subida exitosa del archivo
+const handleFileUploadSuccess = (fileData) => {
+  editedItem.value.documentoUrl = fileData.url;
+  editedItem.value.documentoPath = fileData.path;
+};
+
+// Manejar error en la subida del archivo
+const handleFileUploadError = (error) => {
+  console.error('Error al subir el archivo:', error);
+  // Aquí podrías mostrar un mensaje de error al usuario
+};
+
+// Eliminar documento
+const eliminarDocumento = async () => {
+  if (!editedItem.value.documentoPath) return;
+
+  try {
+    eliminandoDocumento.value = true;
+    const fileRef = storageRef(storage, editedItem.value.documentoPath);
+    await deleteObject(fileRef);
+    editedItem.value.documentoUrl = null;
+    editedItem.value.documentoPath = null;
+
+    // Si estamos editando un contrato existente, actualizamos el documento en Firestore
+    if (editedIndex.value > -1) {
+      await setDoc(
+        doc(db, 'contratos', editedItem.value.id),
+        {
+          documentoUrl: null,
+          documentoPath: null,
+          updatedAt: new Date(),
+          updatedBy: user.value.uid,
+        },
+        { merge: true }
+      );
+    }
+  } catch (error) {
+    console.error('Error al eliminar el documento:', error);
+  } finally {
+    eliminandoDocumento.value = false;
   }
 };
 

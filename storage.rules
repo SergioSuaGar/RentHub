@@ -1,0 +1,59 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Funciones de ayuda
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserRole() {
+      let user = request.auth;
+      let roleDoc = firestore.get(/databases/(default)/documents/roles/$(user.uid));
+      return roleDoc != null ? roleDoc.data.rol : null;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && getUserRole() == role;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isPropietario() {
+      return hasRole('propietario');
+    }
+
+    function isInquilino() {
+      return hasRole('inquilino');
+    }
+
+    function isValidPdfFile() {
+      return request.resource.contentType.matches('application/pdf');
+    }
+
+    function isReasonableSize() {
+      return request.resource.size <= 10 * 1024 * 1024; // 10MB máximo
+    }
+
+    // Reglas para la carpeta de contratos
+    match /contratos/{fileName} {
+      // Lectura: permitida para usuarios autenticados
+      allow read: if isAuthenticated();
+      
+      // Creación: solo admin y propietario, y debe ser un PDF válido de tamaño razonable
+      allow create: if (isAdmin() || isPropietario()) &&
+                      isValidPdfFile() &&
+                      isReasonableSize();
+      
+      // Actualización: solo admin y propietario, y debe mantener las mismas restricciones que la creación
+      allow update: if (isAdmin() || isPropietario()) &&
+                      isValidPdfFile() &&
+                      isReasonableSize();
+      
+      // Eliminación: solo admin y propietario
+      allow delete: if isAdmin() || isPropietario();
+    }
+  }
+} 
