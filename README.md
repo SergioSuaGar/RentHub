@@ -102,11 +102,11 @@ RentHub es una aplicación web moderna diseñada para simplificar la gestión de
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.md) para más detalles.
+Este proyecto está bajo la Licencia Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC 4.0) - ver el archivo [LICENSE.md](LICENSE.md) para más detalles. Esta licencia prohíbe específicamente el uso comercial del software.
 
 ## 👥 Autores
 
-- **Sergio** - _Desarrollo inicial_ - [TuGitHub](https://github.com/tuusuario)
+- **Sergio Suárez Garzón** - _Desarrollo inicial_ - [SergioSuaGar](https://github.com/SergioSuaGar)
 
 ## 🙏 Agradecimientos
 
