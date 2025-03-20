@@ -10,26 +10,33 @@ service cloud.firestore {
     // Función para verificar si el usuario es admin
     function isAdmin() {
       return isAuthenticated() && 
+        exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
     }
     
     // Función para verificar si el usuario es propietario
     function isPropietario() {
       return isAuthenticated() && 
+        exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'propietario';
     }
     
     // Función para verificar si el usuario es inquilino
     function isInquilino() {
       return isAuthenticated() && 
+        exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'inquilino';
     }
 
     // Reglas para la colección de usuarios
     match /usuarios/{userId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isAuthenticated() && request.auth.uid == userId && 
+      allow update: if isAuthenticated() && 
+        (
+          request.auth.uid == userId || 
+          isAdmin()
+        ) && 
         (
           // Permitir actualización de ultimoAcceso
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoAcceso']) ||
@@ -41,7 +48,7 @@ service cloud.firestore {
 
     // Reglas para roles pendientes
     match /roles_pendientes/{userId} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isAdmin();
       allow delete: if isAdmin();
@@ -49,57 +56,32 @@ service cloud.firestore {
 
     // Reglas para propiedades
     match /propiedades/{propiedadId} {
-      allow read: if isAuthenticated() && 
-        (isPropietario() || 
-        isAdmin() || 
-        isInquilino());
-      allow write: if isPropietario() || isAdmin();
+      allow read: if isAuthenticated() && (isPropietario() || isAdmin() || isInquilino());
+      allow write: if isAuthenticated() && (isPropietario() || isAdmin());
     }
 
     // Reglas para inquilinos
     match /inquilinos/{inquilinoId} {
-      allow read: if isAuthenticated() && 
-        (isPropietario() || 
-        isAdmin() || 
-        request.auth.uid == inquilinoId);
-      allow write: if isPropietario() || isAdmin();
+      allow read: if isAuthenticated() && (isPropietario() || isAdmin());
+      allow write: if isAuthenticated() && (isPropietario() || isAdmin());
+    }
+
+    // Reglas para contratos
+    match /contratos/{contratoId} {
+      allow read: if isAuthenticated() && (isPropietario() || isAdmin());
+      allow write: if isAuthenticated() && (isPropietario() || isAdmin());
     }
 
     // Reglas para facturas
     match /facturas/{facturaId} {
-      allow read: if isAuthenticated() && 
-        (isPropietario() || 
-        isAdmin() || 
-        isInquilino());
-      allow write: if isPropietario() || isAdmin();
+      allow read: if isAuthenticated() && (isPropietario() || isAdmin() || isInquilino());
+      allow write: if isAuthenticated() && (isPropietario() || isAdmin());
     }
 
-    // Reglas para pagos
-    match /pagos/{pagoId} {
-      allow read: if isAuthenticated() && 
-        (isPropietario() || 
-        isAdmin() || 
-        (isInquilino() && resource.data.inquilinoId == request.auth.uid));
-      allow create: if isAuthenticated();
-      allow update, delete: if isPropietario() || isAdmin();
-    }
-
-    // Reglas para la colección de contratos
-    match /contratos/{contratoId} {
-      allow read: if isAuthenticated() && 
-        (isPropietario() || 
-        isAdmin() || 
-        isInquilino());
-      allow write: if isPropietario() || isAdmin();
-    }
-
-    // Reglas para la colección de gastos
+    // Reglas para gastos
     match /gastos/{gastoId} {
-      allow read: if isAuthenticated() && 
-        (isPropietario() || 
-        isAdmin() || 
-        isInquilino());
-      allow write: if isPropietario() || isAdmin();
+      allow read: if isAuthenticated() && (isPropietario() || isAdmin());
+      allow write: if isAuthenticated() && (isPropietario() || isAdmin());
     }
   }
 }
