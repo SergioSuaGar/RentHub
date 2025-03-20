@@ -6,13 +6,13 @@ import { getStorage } from 'firebase/storage';
 // Tu configuración de Firebase irá aquí
 const firebaseConfig = {
   // Aquí deberás colocar tu configuración de Firebase
-  apiKey: 'AIzaSyDI_sIpHw8oOf2Cqg-MDO8hsxXUhF3iJkE',
-  authDomain: 'renthub-27b92.firebaseapp.com',
-  projectId: 'renthub-27b92',
-  storageBucket: 'renthub-27b92.firebasestorage.app',
-  messagingSenderId: '93673419672',
-  appId: '1:93673419672:web:9e0f083fdcd8e0a62f31ed',
-  measurementId: 'G-H0W492HL1S',
+  apiKey: 'AIzaSyA4EixMgXn9U9QZdSuFuBGRdRylSS280CY',
+  authDomain: 'cardinal-4f706.firebaseapp.com',
+  projectId: 'cardinal-4f706',
+  storageBucket: 'cardinal-4f706.firebasestorage.app',
+  messagingSenderId: '297667802866',
+  appId: '1:297667802866:web:0988bb3c8d5acf6acf026b',
+  measurementId: 'G-HK3LLN1BTQ',
 };
 
 // Inicializar Firebase
