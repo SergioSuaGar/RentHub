@@ -335,7 +335,7 @@ const gastos = ref([]);
 const propiedades = ref([]);
 
 // Tipos de gasto
-const tiposGasto = ['IBI', 'Comunidad', 'Seguro', 'Legalitas'];
+const tiposGasto = ['IBI', 'Comunidad', 'Seguro', 'Legalitas', 'Otros'];
 
 // Variables para el diálogo
 const dialog = ref(false);

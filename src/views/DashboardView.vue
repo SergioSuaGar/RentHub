@@ -336,6 +336,7 @@ const gastosPorTipo = ref({
   Comunidad: 0,
   Seguro: 0,
   Legalitas: 0,
+  Otros: 0,
 });
 const añoActual = new Date().getFullYear();
 
@@ -682,6 +683,7 @@ const loadGastos = async (propiedadId = null) => {
       Comunidad: 0,
       Seguro: 0,
       Legalitas: 0,
+      Otros: 0,
     };
 
     gastosSnapshot.docs.forEach((doc) => {
@@ -712,6 +714,7 @@ const getColorForTipo = (tipo) => {
     Comunidad: 'primary',
     Seguro: 'success',
     Legalitas: 'warning',
+    Otros: 'purple',
   };
   return colores[tipo] || 'grey';
 };
