@@ -4,7 +4,7 @@
       <v-toolbar flat color="primary" class="text-white">
         <v-toolbar-title>{{ title }}</v-toolbar-title>
         <v-spacer></v-spacer>
-        <v-btn icon variant="text" @click="closeDialog">
+        <v-btn icon variant="text" @click="closeDialog" :title="'Cerrar'">
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-toolbar>
@@ -20,19 +20,28 @@
             Reintentar
           </v-btn>
         </div>
-        <object v-else :data="pdfUrl" type="application/pdf" class="pdf-viewer">
-          <p>
-            Tu navegador no puede mostrar el PDF directamente.
-            <a :href="pdfUrl" target="_blank">Haz clic aquí para descargarlo</a>
-          </p>
-        </object>
+        <div v-else class="pdf-viewer-container">
+          <iframe :src="viewerUrl" class="pdf-viewer" frameborder="0" allowfullscreen></iframe>
+          <div class="pdf-actions">
+            <v-btn
+              color="primary"
+              variant="text"
+              :href="pdfUrl"
+              target="_blank"
+              prepend-icon="mdi-download"
+              class="mt-2"
+            >
+              Descargar PDF
+            </v-btn>
+          </div>
+        </div>
       </v-card-text>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 
 const props = defineProps({
@@ -52,6 +61,13 @@ const error = ref(null);
 const pdfUrl = ref(null);
 const canRetry = ref(false);
 
+// URL para el visor de Google Docs
+const viewerUrl = computed(() => {
+  if (!pdfUrl.value) return '';
+  // Intentamos primero mostrar el PDF directamente
+  return pdfUrl.value;
+});
+
 watch(
   () => props.modelValue,
   async (newVal) => {
@@ -67,7 +83,6 @@ watch(
   (newVal) => {
     emit('update:modelValue', newVal);
     if (!newVal) {
-      // Limpiar estado cuando se cierra el diálogo
       pdfUrl.value = null;
       error.value = null;
       canRetry.value = false;
@@ -121,31 +136,45 @@ const closeDialog = () => {
 }
 
 .pdf-viewer-card {
-  height: 85vh;
+  height: 70vh;
   display: flex;
   flex-direction: column;
 }
 
 .pdf-container {
   flex: 1;
-  height: calc(85vh - 64px); /* Restamos la altura del toolbar */
+  height: calc(70vh - 64px);
   overflow: hidden;
   padding: 0 !important;
   background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-viewer-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .pdf-viewer {
+  flex: 1;
   width: 100%;
   height: 100%;
   border: none;
 }
 
-:deep(.v-overlay__content) {
-  max-height: 85vh !important;
+.pdf-actions {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  background-color: white;
+  border-top: 1px solid #e0e0e0;
 }
 
 :deep(.v-card) {
-  max-height: 85vh !important;
+  max-height: 70vh !important;
   border-radius: 4px;
   margin: 24px;
 }
