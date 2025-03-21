@@ -64,8 +64,8 @@ const canRetry = ref(false);
 // URL para el visor de Google Docs
 const viewerUrl = computed(() => {
   if (!pdfUrl.value) return '';
-  // Intentamos primero mostrar el PDF directamente
-  return pdfUrl.value;
+  // Usar el visor de Google Docs
+  return `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl.value)}&embedded=true`;
 });
 
 watch(
