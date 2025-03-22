@@ -156,93 +156,27 @@
       </v-card-text>
     </v-card>
 
-    <!-- Diálogo para crear/editar propiedad -->
-    <v-dialog v-model="dialog" max-width="600px">
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">{{ formTitle }}</span>
-        </v-card-title>
+    <!-- Usar el componente PropiedadFormDialog -->
+    <PropiedadFormDialog v-model:dialog="dialog" :propiedad="editedItem" @save="handleSave" />
 
-        <v-card-text>
-          <v-form ref="form" v-model="formValid" @submit.prevent="handleSubmit" lazy-validation>
-            <v-container>
-              <v-row>
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="editedItem.nombre"
-                    :label="'Nombre *'"
-                    :rules="[rules.required, rules.maxLength(100)]"
-                    counter="100"
-                    required
-                    :hint="'Introduce el nombre de la propiedad'"
-                    persistent-hint
-                    @keydown.enter.prevent
-                    validate-on-blur
-                  ></v-text-field>
-                </v-col>
-              </v-row>
-            </v-container>
-          </v-form>
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-            color="secondary"
-            variant="text"
-            @click="closeDialog"
-            :title="'Cancelar la operación actual'"
-          >
-            Cancelar
-          </v-btn>
-          <v-btn
-            color="primary"
-            variant="text"
-            @click="handleSubmit"
-            :loading="saving"
-            :disabled="!formValid || saving"
-            :title="'Guardar los cambios realizados'"
-          >
-            Guardar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Diálogo de confirmación para eliminar -->
-    <v-dialog v-model="dialogDelete" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5">¿Estás seguro de eliminar esta propiedad?</v-card-title>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-            color="secondary"
-            variant="text"
-            @click="closeDelete"
-            :title="'Cancelar la eliminación'"
-          >
-            No
-          </v-btn>
-          <v-btn
-            color="error"
-            variant="text"
-            @click="deleteItemConfirm"
-            :title="'Confirmar la eliminación de la propiedad'"
-          >
-            Sí
-          </v-btn>
-          <v-spacer></v-spacer>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- Usar el componente PropiedadDeleteDialog -->
+    <PropiedadDeleteDialog
+      v-model:dialog="dialogDelete"
+      :propiedad="editedItem"
+      :inquilinos="inquilinos"
+      @delete="deleteItemConfirm"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
-import { collection, query, getDocs, doc, setDoc, deleteDoc, where } from 'firebase/firestore';
-import { db } from '@/services/firebase';
+import { ref, computed, onMounted } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import PropiedadFormDialog from '@/components/PropiedadFormDialog.vue';
+import PropiedadDeleteDialog from '@/components/PropiedadDeleteDialog.vue';
+import propiedadService from '@/services/propiedad-service';
+import inquilinoService from '@/services/inquilino-service';
+import { formatDate } from '@/services/utils/date-utils';
 
 const { user, isAdmin } = useAuth();
 
@@ -258,7 +192,6 @@ const inquilinos = ref([]);
 // Variables para el diálogo
 const dialog = ref(false);
 const dialogDelete = ref(false);
-const editedIndex = ref(-1);
 const editedItem = ref({
   nombre: '',
   estado: true,
@@ -282,30 +215,10 @@ const headers = [
   { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
 ];
 
-// Reglas de validación
-const form = ref(null);
-const formValid = ref(false);
-const saving = ref(false);
-
-const rules = {
-  required: (v) => !!v || 'Este campo es requerido',
-  maxLength: (max) => (v) => (v && v.length <= max) || `Máximo ${max} caracteres`,
-};
-
-// Título del formulario
-const formTitle = computed(() => {
-  return editedIndex.value === -1 ? 'Nueva Propiedad' : 'Editar Propiedad';
-});
-
 // Cargar inquilinos activos
 const loadInquilinos = async () => {
   try {
-    const q = query(collection(db, 'inquilinos'), where('estado', '==', true));
-    const querySnapshot = await getDocs(q);
-    inquilinos.value = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    inquilinos.value = await inquilinoService.getActivos();
   } catch (error) {
     console.error('Error al cargar inquilinos:', error);
   }
@@ -315,22 +228,21 @@ const loadInquilinos = async () => {
 const loadPropiedades = async () => {
   loading.value = true;
   try {
-    const q = query(collection(db, 'propiedades'));
-    const querySnapshot = await getDocs(q);
-    propiedades.value = querySnapshot.docs.map((doc) => {
-      const data = doc.data();
+    const propiedadesData = await propiedadService.loadPropiedades();
+
+    propiedades.value = propiedadesData.map((propiedad) => {
       // Filtrar inquilinos activos asociados a esta propiedad
       const inquilinosActivos = inquilinos.value
-        .filter((i) => i.propiedadId === doc.id)
+        .filter((i) => i.propiedadId === propiedad.id)
         .map((i) => `${i.nombre} ${i.apellidos}`);
 
       return {
-        id: doc.id,
-        ...data,
-        estado: data.estado ?? true,
+        ...propiedad,
+        estado: propiedad.estado ?? true,
         inquilinosActivos: inquilinosActivos.join(', ') || 'Sin inquilinos',
       };
     });
+
     totalItems.value = propiedades.value.length;
   } catch (error) {
     console.error('Error al cargar propiedades:', error);
@@ -341,101 +253,37 @@ const loadPropiedades = async () => {
 
 // Abrir diálogo
 const openDialog = (item) => {
-  editedIndex.value = item ? propiedades.value.indexOf(item) : -1;
   editedItem.value = item ? { ...item } : { ...defaultItem };
   dialog.value = true;
-  // Resetear validación y establecer como válido si estamos editando
-  nextTick(() => {
-    form.value?.resetValidation();
-    if (item) {
-      formValid.value = true;
-    }
-  });
-};
-
-// Cerrar diálogo
-const closeDialog = () => {
-  dialog.value = false;
-  editedIndex.value = -1;
-  editedItem.value = { ...defaultItem };
-  nextTick(() => {
-    form.value?.reset();
-    formValid.value = false;
-  });
-};
-
-// Manejar el envío del formulario
-const handleSubmit = async () => {
-  if (saving.value) return; // Evitar múltiples envíos
-
-  const isValid = await form.value?.validate();
-
-  if (!isValid) {
-    formValid.value = false;
-    return;
-  }
-
-  formValid.value = true;
-  await savePropiedad();
-};
-
-// Guardar propiedad
-const savePropiedad = async () => {
-  if (saving.value || !formValid.value) return;
-
-  try {
-    saving.value = true;
-    const itemData = {
-      ...editedItem.value,
-      estado: editedItem.value.estado ?? true,
-      updatedAt: new Date(),
-      updatedBy: user.value.uid,
-    };
-
-    if (editedIndex.value > -1) {
-      await setDoc(doc(db, 'propiedades', editedItem.value.id), itemData, { merge: true });
-      Object.assign(propiedades.value[editedIndex.value], itemData);
-    } else {
-      itemData.createdAt = new Date();
-      itemData.createdBy = user.value.uid;
-      const docRef = doc(collection(db, 'propiedades'));
-      await setDoc(docRef, itemData);
-      const newItem = { ...itemData, id: docRef.id };
-      propiedades.value.push(newItem);
-      totalItems.value++;
-    }
-    closeDialog();
-    // Recargar datos para actualizar la lista de inquilinos
-    await loadInquilinos();
-    await loadPropiedades();
-  } catch (error) {
-    console.error('Error al guardar:', error);
-  } finally {
-    saving.value = false;
-  }
 };
 
 // Confirmar eliminación
 const confirmDelete = (item) => {
-  editedIndex.value = propiedades.value.indexOf(item);
   editedItem.value = { ...item };
   dialogDelete.value = true;
 };
 
-// Cerrar diálogo de eliminación
-const closeDelete = () => {
-  dialogDelete.value = false;
-  editedIndex.value = -1;
-  editedItem.value = { ...defaultItem };
+// Manejar el envío del formulario
+const handleSave = async (propiedadData) => {
+  try {
+    if (propiedadData.id) {
+      await propiedadService.updatePropiedad(propiedadData.id, propiedadData, user.value);
+    } else {
+      await propiedadService.createPropiedad(propiedadData, user.value);
+    }
+    // Recargar datos para actualizar la lista
+    await loadInquilinos();
+    await loadPropiedades();
+  } catch (error) {
+    console.error('Error al guardar:', error);
+  }
 };
 
 // Eliminar propiedad
-const deleteItemConfirm = async () => {
+const deleteItemConfirm = async (propiedad) => {
   try {
-    await deleteDoc(doc(db, 'propiedades', editedItem.value.id));
-    propiedades.value.splice(editedIndex.value, 1);
-    closeDelete();
-    // Recargar datos para actualizar la lista de inquilinos
+    await propiedadService.deletePropiedad(propiedad.id);
+    // Recargar datos para actualizar la lista
     await loadInquilinos();
     await loadPropiedades();
   } catch (error) {
@@ -447,11 +295,8 @@ const deleteItemConfirm = async () => {
 const toggleEstado = async (item) => {
   try {
     const newEstado = !item.estado;
-    await setDoc(
-      doc(db, 'propiedades', item.id),
-      { estado: newEstado, updatedAt: new Date(), updatedBy: user.value.uid },
-      { merge: true }
-    );
+    await propiedadService.toggleEstadoPropiedad(item.id, newEstado, user.value);
+    // Actualizar el estado en la vista
     item.estado = newEstado;
     // Recargar datos para actualizar la lista de inquilinos
     await loadInquilinos();
@@ -459,37 +304,6 @@ const toggleEstado = async (item) => {
   } catch (error) {
     console.error('Error al cambiar estado:', error);
   }
-};
-
-// Añadir la función formatDate
-const formatDate = (timestamp) => {
-  if (!timestamp) return 'No disponible';
-
-  // Si es un objeto Timestamp de Firestore
-  if (timestamp.seconds) {
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  // Si es una cadena de fecha ISO
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  return 'No disponible';
 };
 
 // Cargar datos iniciales
