@@ -42,7 +42,8 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue';
-import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
+import usePdfLoader from '@/composables/usePdfLoader';
+import storageService from '@/services/storage';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -56,10 +57,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const dialog = ref(false);
-const loading = ref(false);
-const error = ref(null);
-const pdfUrl = ref(null);
-const canRetry = ref(false);
+
+const { loading, error, pdfUrl, canRetry, loadPdf, retryLoad } = usePdfLoader(storageService);
 
 // URL para el visor de Google Docs
 const viewerUrl = computed(() => {
@@ -73,7 +72,7 @@ watch(
   async (newVal) => {
     dialog.value = newVal;
     if (newVal && props.filePath) {
-      await loadPdf();
+      await loadPdf(props.filePath);
     }
   }
 );
@@ -82,48 +81,8 @@ watch(
   () => dialog.value,
   (newVal) => {
     emit('update:modelValue', newVal);
-    if (!newVal) {
-      pdfUrl.value = null;
-      error.value = null;
-      canRetry.value = false;
-    }
   }
 );
-
-const loadPdf = async () => {
-  if (!props.filePath) {
-    error.value = 'No hay documento adjunto para este contrato.';
-    canRetry.value = false;
-    return;
-  }
-
-  loading.value = true;
-  error.value = null;
-  canRetry.value = false;
-
-  try {
-    const storage = getStorage();
-    const fileRef = storageRef(storage, props.filePath);
-    const url = await getDownloadURL(fileRef);
-    pdfUrl.value = url;
-  } catch (err) {
-    console.error('Error al cargar el PDF:', err);
-    if (err.code === 'storage/object-not-found') {
-      error.value = 'El documento no se encuentra disponible.';
-    } else {
-      error.value = 'Error al cargar el documento. Por favor, inténtelo de nuevo.';
-      canRetry.value = true;
-    }
-  } finally {
-    loading.value = false;
-  }
-};
-
-const retryLoad = () => {
-  if (props.filePath) {
-    loadPdf();
-  }
-};
 
 const closeDialog = () => {
   dialog.value = false;
