@@ -268,20 +268,36 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import { collection, query, getDocs, doc, setDoc, deleteDoc, where } from 'firebase/firestore';
-import { db, storage } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
 import { useRoute } from 'vue-router';
-import { sortProperties } from '@/config/propertyOrder';
-import { ref as storageRef, deleteObject } from 'firebase/storage';
 import FileUploader from '@/components/FileUploader.vue';
 import PdfViewer from '@/components/PdfViewer.vue';
-import ContratoService from '@/services/contrato';
-import PropiedadService from '@/services/propiedad';
-import InquilinoService from '@/services/inquilino';
 import ContratoForm from '@/components/ContratoForm.vue';
 import ContratoRenovacionDialog from '@/components/ContratoRenovacionDialog.vue';
 import ContratoAjusteIPCDialog from '@/components/ContratoAjusteIPCDialog.vue';
+
+// Importar funciones del servicio de contratos
+import {
+  loadContratos,
+  loadPropiedadesParaContratos,
+  loadInquilinosParaContratos,
+  createContrato,
+  updateContrato,
+  deleteContrato,
+  toggleEstadoContrato,
+  renovarContrato,
+  ajustarIPCContrato,
+  eliminarDocumentoContrato,
+  formatCurrency,
+  formatDate,
+  formatDateShort,
+  formatPrecio,
+  calcularFechaRenovacion,
+  calcularEstadoRenovacion,
+  calcularNuevoPrecioIPC,
+  isoToDateInput,
+  dateInputToIso,
+} from '@/services/contrato';
 
 const { user } = useAuth();
 
@@ -377,118 +393,32 @@ const formTitle = computed(() => {
   return editedIndex.value === -1 ? 'Nuevo Contrato' : 'Editar Contrato';
 });
 
-// Formatear moneda
-const formatCurrency = (value) => {
-  if (!value) return '0,00 €';
-  return `${value} €`;
-};
-
-// Formatear fecha
-const formatDate = (timestamp) => {
-  if (!timestamp) return 'No disponible';
-
-  // Si es un objeto Timestamp de Firestore
-  if (timestamp.seconds) {
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  // Si es una cadena de fecha ISO
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  return 'No disponible';
-};
-
-// Formatear fecha corta
-const formatDateShort = (timestamp) => {
-  if (!timestamp) return 'No disponible';
-
-  // Si es un objeto Timestamp de Firestore
-  if (timestamp.seconds) {
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  // Si es una cadena de fecha ISO
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  return 'No disponible';
-};
-
-// Formatear precio
-const formatPrecio = (event) => {
-  let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
-  if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
-  }
-  // Limitar a dos decimales
-  if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
-  }
-  editedItem.value.precio = value;
-};
-
-// Calcular fecha de renovación
-const calcularFechaRenovacion = (fechaInicio) => {
-  if (!fechaInicio) return;
-  const fecha = new Date(fechaInicio);
-  fecha.setFullYear(fecha.getFullYear() + 1);
-  fecha.setDate(fecha.getDate() - 1); // Restar un día para que sea el día anterior al año
-  editedItem.value.fechaRenovacion = fecha.toISOString().split('T')[0];
-};
+// Variables para el visor de PDF
+const showPdfViewer = ref(false);
+const selectedPdfPath = ref('');
+const selectedPdfTitle = ref('');
 
 // Cargar contratos
-const loadContratos = async () => {
+const loadContratosData = async () => {
   loading.value = true;
   try {
-    // Primero cargamos las propiedades para tener los nombres disponibles
-    await loadPropiedades();
+    // Cargar propiedades primero
+    propiedades.value = await loadPropiedadesParaContratos();
 
-    const q = query(collection(db, 'contratos'));
-    const querySnapshot = await getDocs(q);
-    contratos.value = querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      const propiedad = propiedades.value.find((p) => p.id === data.propiedadId);
+    // Luego cargar contratos
+    const contratosData = await loadContratos();
+    contratos.value = contratosData.map((contrato) => {
+      const propiedad = propiedades.value.find((p) => p.id === contrato.propiedadId);
       return {
-        id: doc.id,
-        ...data,
+        ...contrato,
         propiedadNombre: propiedad ? propiedad.nombre : '',
       };
     });
+
     totalItems.value = contratos.value.length;
 
-    // Después de cargar los contratos, actualizamos los inquilinos disponibles
-    await loadInquilinos();
+    // Después cargar inquilinos disponibles
+    await loadInquilinosData();
   } catch (error) {
     console.error('Error al cargar contratos:', error);
   } finally {
@@ -496,92 +426,16 @@ const loadContratos = async () => {
   }
 };
 
-// Cargar propiedades activas
-const loadPropiedades = async () => {
+// Cargar inquilinos
+const loadInquilinosData = async () => {
   try {
-    // Primero obtenemos las propiedades activas
-    const q = query(collection(db, 'propiedades'), where('estado', '==', true));
-    const querySnapshot = await getDocs(q);
-    const todasLasPropiedades = sortProperties(
-      querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }))
-    );
-
-    if (dialog.value) {
-      // Si el diálogo está abierto, filtramos las propiedades según el estado de edición
-      const contratosActivos = contratos.value.filter((c) => c.estado);
-      const propiedadesConContrato = new Set(contratosActivos.map((c) => c.propiedadId));
-
-      // Si estamos editando, incluimos la propiedad del contrato actual
-      if (editedIndex.value > -1) {
-        const propiedadActual = editedItem.value.propiedadId;
-        propiedades.value = todasLasPropiedades.filter(
-          (propiedad) =>
-            !propiedadesConContrato.has(propiedad.id) || propiedad.id === propiedadActual
-        );
-      } else {
-        // Si es nuevo contrato, solo mostramos propiedades sin contrato activo
-        propiedades.value = todasLasPropiedades.filter(
-          (propiedad) => !propiedadesConContrato.has(propiedad.id)
-        );
-      }
-    } else {
-      // Si no está el diálogo abierto, mostramos todas las propiedades activas
-      propiedades.value = todasLasPropiedades;
-    }
-  } catch (error) {
-    console.error('Error al cargar propiedades:', error);
-  }
-};
-
-// Cargar inquilinos activos
-const loadInquilinos = async () => {
-  try {
-    const q = query(collection(db, 'inquilinos'), where('estado', '==', true));
-    const querySnapshot = await getDocs(q);
-    const todosLosInquilinos = querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        nombreCompleto: `${data.nombre} ${data.apellidos}`,
-      };
-    });
-
-    // Obtenemos los contratos activos
-    const contratosActivos = contratos.value.filter((c) => c.estado);
-    const inquilinosConContrato = new Set();
-    contratosActivos.forEach((contrato) => {
-      if (contrato.id !== editedItem.value.id) {
-        // No excluir inquilinos del contrato actual si estamos editando
-        contrato.inquilinosIds.forEach((id) => inquilinosConContrato.add(id));
-      }
-    });
-
-    // Si estamos editando, incluimos los inquilinos del contrato actual
-    if (editedIndex.value > -1) {
-      const inquilinosActuales = new Set(editedItem.value.inquilinosIds);
-      inquilinos.value = todosLosInquilinos.filter(
-        (inquilino) =>
-          !inquilinosConContrato.has(inquilino.id) || inquilinosActuales.has(inquilino.id)
-      );
-    } else {
-      // Si es nuevo contrato, solo mostramos inquilinos sin contrato activo
-      inquilinos.value = todosLosInquilinos.filter(
-        (inquilino) => !inquilinosConContrato.has(inquilino.id)
-      );
-    }
+    const isEditing = editedIndex.value > -1;
+    const currentInquilinosIds = isEditing ? editedItem.value.inquilinosIds : [];
+    inquilinos.value = await loadInquilinosParaContratos(isEditing, currentInquilinosIds);
   } catch (error) {
     console.error('Error al cargar inquilinos:', error);
   }
 };
-
-// Variables para el visor de PDF
-const showPdfViewer = ref(false);
-const selectedPdfPath = ref('');
-const selectedPdfTitle = ref('');
 
 // Función para abrir el visor de PDF
 const openPdfViewer = (item) => {
@@ -604,87 +458,7 @@ const openDialog = (item) => {
 
 // Manejar el guardado del contrato desde el formulario
 const handleContratoSave = async () => {
-  await loadContratos();
-};
-
-// Cerrar diálogo
-const closeDialog = () => {
-  dialog.value = false;
-  editedIndex.value = -1;
-  editedItem.value = { ...defaultItem };
-};
-
-// Manejar el envío del formulario
-const handleSubmit = async () => {
-  if (saving.value) return;
-
-  const isValid = await form.value?.validate();
-
-  if (!isValid) {
-    formValid.value = false;
-    return;
-  }
-
-  formValid.value = true;
-  await saveContrato();
-};
-
-// Guardar contrato
-const saveContrato = async () => {
-  if (saving.value || !formValid.value) return;
-
-  try {
-    saving.value = true;
-    const itemData = {
-      ...editedItem.value,
-      estado: editedItem.value.estado ?? true,
-      updatedAt: new Date(),
-      updatedBy: user.value.uid,
-    };
-
-    if (editedIndex.value > -1) {
-      await ContratoService.update(contratos.value[editedIndex.value].id, itemData);
-      Object.assign(contratos.value[editedIndex.value], itemData);
-    } else {
-      itemData.createdAt = new Date();
-      itemData.createdBy = user.value.uid;
-      const id = await ContratoService.create(itemData);
-      const newItem = { ...itemData, id };
-      contratos.value.push(newItem);
-      totalItems.value++;
-    }
-    closeDialog();
-    await loadContratos();
-  } catch (error) {
-    console.error('Error al guardar:', error);
-  } finally {
-    saving.value = false;
-  }
-};
-
-// Confirmar eliminación
-const confirmDelete = (item) => {
-  editedIndex.value = contratos.value.indexOf(item);
-  editedItem.value = { ...item };
-  dialogDelete.value = true;
-};
-
-// Cerrar diálogo de eliminación
-const closeDelete = () => {
-  dialogDelete.value = false;
-  editedIndex.value = -1;
-  editedItem.value = { ...defaultItem };
-};
-
-// Eliminar contrato
-const deleteItemConfirm = async () => {
-  try {
-    await ContratoService.delete(contratos.value[editedIndex.value].id);
-    contratos.value.splice(editedIndex.value, 1);
-    closeDelete();
-  } catch (error) {
-    console.error('Error al eliminar:', error);
-  }
+  await loadContratosData();
 };
 
 // Actualizar el nombre de la propiedad cuando se seleccione
@@ -705,93 +479,40 @@ const updateInquilinosNombres = (inquilinosIds) => {
 const toggleEstado = async (item) => {
   try {
     const newEstado = !item.estado;
-    await ContratoService.update(item.id, {
-      estado: newEstado,
-      updatedAt: new Date(),
-      updatedBy: user.value.uid,
-    });
-    item.estado = newEstado;
+    const success = await toggleEstadoContrato(item.id, newEstado, user.value.uid);
+    if (success) {
+      item.estado = newEstado;
+    }
   } catch (error) {
     console.error('Error al cambiar estado:', error);
   }
 };
 
-// Función para calcular el estado de renovación
-const calcularEstadoRenovacion = (fechaRenovacion, ipcAjustado = true) => {
-  if (!fechaRenovacion) return { estado: 'Vigente', color: 'success' };
-
-  const fechaRenovacionObj = new Date(fechaRenovacion);
-  const hoy = new Date();
-
-  // Establecer las horas a 0 para comparar solo fechas
-  fechaRenovacionObj.setHours(0, 0, 0, 0);
-  hoy.setHours(0, 0, 0, 0);
-
-  // Si la fecha de renovación es menor o igual a hoy
-  if (fechaRenovacionObj <= hoy) {
-    return { estado: 'Pendiente de Renovación', color: 'error' };
-  }
-
-  // Si el IPC no ha sido ajustado después de la última renovación
-  if (!ipcAjustado) {
-    return { estado: 'Pendiente de Ajuste IPC', color: 'warning' };
-  }
-
-  return { estado: 'Vigente', color: 'success' };
+// Confirmar eliminación
+const confirmDelete = (item) => {
+  editedIndex.value = contratos.value.indexOf(item);
+  editedItem.value = { ...item };
+  dialogDelete.value = true;
 };
 
-// Formatear precio IPC
-const formatPrecioIPC = (event) => {
-  let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
-  if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
-  }
-  // Limitar a dos decimales
-  if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
-  }
-  // Eliminar coma y decimales si son todos ceros
-  if (parts.length === 2 && /^0*$/.test(parts[1])) {
-    value = parts[0];
-  }
-  ajusteIPCData.value.nuevoPrecio = value;
+// Cerrar diálogo de eliminación
+const closeDelete = () => {
+  dialogDelete.value = false;
+  editedIndex.value = -1;
+  editedItem.value = { ...defaultItem };
 };
 
-// Calcular nuevo precio con IPC
-const calcularNuevoPrecio = (precioActual, incrementoIPC) => {
-  if (!precioActual || !incrementoIPC) {
-    ajusteIPCData.value.nuevoPrecio = '';
-    return;
+// Eliminar contrato
+const deleteItemConfirm = async () => {
+  try {
+    const success = await deleteContrato(contratos.value[editedIndex.value].id);
+    if (success) {
+      contratos.value.splice(editedIndex.value, 1);
+      closeDelete();
+    }
+  } catch (error) {
+    console.error('Error al eliminar:', error);
   }
-  const precio = parseFloat(precioActual.replace(',', '.'));
-  const incremento = parseFloat(incrementoIPC.replace(',', '.'));
-  const nuevoPrecio = precio * (1 + incremento / 100);
-
-  // Convertir a string con 2 decimales y reemplazar punto por coma
-  let precioFormateado = nuevoPrecio.toFixed(2).replace('.', ',');
-
-  // Eliminar decimales si son ceros
-  if (precioFormateado.endsWith(',00')) {
-    precioFormateado = precioFormateado.slice(0, -3);
-  }
-
-  ajusteIPCData.value.nuevoPrecio = precioFormateado;
-};
-
-// Función para convertir fecha ISO a formato de entrada (YYYY-MM-DD)
-const isoToDateInput = (isoDate) => {
-  if (!isoDate) return '';
-  return isoDate.split('T')[0];
-};
-
-// Función para convertir fecha de entrada a ISO
-const dateInputToIso = (inputDate) => {
-  if (!inputDate) return '';
-  return new Date(inputDate).toISOString();
 };
 
 // Función para manejar el clic en el estado de renovación
@@ -811,12 +532,12 @@ const handleEstadoRenovacionClick = (item) => {
 
 // Manejar el guardado de la renovación desde el diálogo
 const handleRenovacionSave = async () => {
-  await loadContratos();
+  await loadContratosData();
 };
 
 // Manejar el guardado del ajuste IPC desde el diálogo
 const handleAjusteIPCSave = async () => {
-  await loadContratos();
+  await loadContratosData();
 };
 
 const eliminandoDocumento = ref(false);
@@ -839,19 +560,15 @@ const eliminarDocumento = async () => {
 
   try {
     eliminandoDocumento.value = true;
-    const fileRef = storageRef(storage, editedItem.value.documentoPath);
-    await deleteObject(fileRef);
-    editedItem.value.documentoUrl = null;
-    editedItem.value.documentoPath = null;
+    const success = await eliminarDocumentoContrato(
+      editedItem.value.id,
+      editedItem.value.documentoPath,
+      user.value.uid
+    );
 
-    // Si estamos editando un contrato existente, actualizamos el documento en Firestore
-    if (editedIndex.value > -1) {
-      await ContratoService.update(contratos.value[editedIndex.value].id, {
-        documentoUrl: null,
-        documentoPath: null,
-        updatedAt: new Date(),
-        updatedBy: user.value.uid,
-      });
+    if (success) {
+      editedItem.value.documentoUrl = null;
+      editedItem.value.documentoPath = null;
     }
   } catch (error) {
     console.error('Error al eliminar el documento:', error);
@@ -862,7 +579,7 @@ const eliminarDocumento = async () => {
 
 // Cargar datos iniciales
 onMounted(async () => {
-  await loadContratos();
+  await loadContratosData();
 });
 </script>
 
