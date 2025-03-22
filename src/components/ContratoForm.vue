@@ -138,11 +138,14 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, watch } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 import FileUploader from '@/components/FileUploader.vue';
 import PropiedadService from '@/services/propiedad';
 import InquilinoService from '@/services/inquilino';
+import ContratoService from '@/services/contrato';
+import { storage } from '@/services/firebase';
+import { ref as storageRef, deleteObject } from 'firebase/storage';
 
 const props = defineProps({
   contrato: {
@@ -290,7 +293,8 @@ const eliminarDocumento = async () => {
 
   try {
     eliminandoDocumento.value = true;
-    await storageService.deleteFile(editedItem.value.documentoPath);
+    const fileRef = storageRef(storage, editedItem.value.documentoPath);
+    await deleteObject(fileRef);
     editedItem.value.documentoUrl = null;
     editedItem.value.documentoPath = null;
   } catch (error) {
@@ -317,14 +321,14 @@ const handleSubmit = async () => {
     const itemData = {
       ...editedItem.value,
       estado: editedItem.value.estado ?? true,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       updatedBy: user.value.uid,
     };
 
     if (props.contrato.id) {
       await ContratoService.update(props.contrato.id, itemData);
     } else {
-      itemData.createdAt = new Date();
+      itemData.createdAt = new Date().toISOString();
       itemData.createdBy = user.value.uid;
       await ContratoService.create(itemData);
     }
