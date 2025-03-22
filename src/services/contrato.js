@@ -1,18 +1,15 @@
 import { ContratoService } from './contrato-service';
 
 // Importar funciones de format
-import {
-  formatCurrency,
-  formatDate,
-  formatDateShort,
-  formatPrecio,
-} from '@/services/utils/format-utils';
+import { formatCurrency, formatPrecio } from '@/services/utils/format-utils';
 // Importar funciones de date-utils
 import {
   isoToDateInput,
   dateInputToIso,
   calcularFechaRenovacion,
   calcularEstadoRenovacion,
+  formatDate,
+  formatDateShort,
 } from '@/services/utils/date-utils';
 // Importar funciones de math-utils
 import { calcularNuevoPrecioIPC } from '@/services/utils/math-utils';
@@ -86,12 +83,12 @@ export const getByPropiedadId = async (propiedadId) => {
   return contratoService.getByPropiedadId(propiedadId);
 };
 
-// Exportamos todas las funciones de utilidad
+// Exportaciones
 export {
   formatCurrency,
+  formatPrecio,
   formatDate,
   formatDateShort,
-  formatPrecio,
   isoToDateInput,
   dateInputToIso,
   calcularFechaRenovacion,
@@ -99,24 +96,24 @@ export {
   calcularNuevoPrecioIPC,
 };
 
-// Crear una exportación por defecto para mantener la compatibilidad con el código existente
+// Exportación predeterminada
 export default {
-  getAll: loadContratos,
-  getById: getContratoById,
-  create: createContrato,
-  update: updateContrato,
-  delete: deleteContrato,
-  getByPropiedadId,
+  loadContratos,
   loadPropiedadesParaContratos,
   loadInquilinosParaContratos,
+  getContratoById,
+  createContrato,
+  updateContrato,
+  deleteContrato,
   toggleEstadoContrato,
   renovarContrato,
   ajustarIPCContrato,
   eliminarDocumentoContrato,
+  getByPropiedadId,
   formatCurrency,
+  formatPrecio,
   formatDate,
   formatDateShort,
-  formatPrecio,
   isoToDateInput,
   dateInputToIso,
   calcularFechaRenovacion,

@@ -1,6 +1,6 @@
 /**
  * Servicio de formateo centralizado para toda la aplicación.
- * Contiene funciones para formatear moneda, fechas y valores numéricos.
+ * Contiene funciones para formatear moneda y valores numéricos.
  */
 
 /**
@@ -11,72 +11,6 @@
 export const formatCurrency = (value) => {
   if (!value) return '0,00 €';
   return `${value} €`;
-};
-
-/**
- * Formatea una fecha en formato largo
- * @param {Date|string|object} timestamp - Fecha a formatear (puede ser objeto Date, string ISO o Timestamp de Firestore)
- * @returns {string} - Fecha formateada en formato largo (ej: "1 de enero de 2023, 12:00")
- */
-export const formatDate = (timestamp) => {
-  if (!timestamp) return 'No disponible';
-
-  // Si es un objeto Timestamp de Firestore
-  if (timestamp.seconds) {
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  // Si es una cadena de fecha ISO
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  return 'No disponible';
-};
-
-/**
- * Formatea una fecha en formato corto
- * @param {Date|string|object} timestamp - Fecha a formatear
- * @returns {string} - Fecha formateada en formato corto (ej: "01/01/2023")
- */
-export const formatDateShort = (timestamp) => {
-  if (!timestamp) return 'No disponible';
-
-  // Si es un objeto Timestamp de Firestore
-  if (timestamp.seconds) {
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  // Si es una cadena de fecha ISO
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  return 'No disponible';
 };
 
 /**
@@ -138,8 +72,6 @@ export const formatImportePagado = (value) => {
  */
 export default {
   formatCurrency,
-  formatDate,
-  formatDateShort,
   formatNumericInput,
   formatPrecio,
   formatImporte,

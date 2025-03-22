@@ -11,17 +11,14 @@ import { db, storage } from '@/services/firebase';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
 
 // Importar utilidades
-import {
-  formatCurrency,
-  formatDate,
-  formatDateShort,
-  formatPrecio,
-} from '@/services/utils/format-utils';
+import { formatCurrency, formatPrecio } from '@/services/utils/format-utils';
 import {
   isoToDateInput,
   dateInputToIso,
   calcularFechaRenovacion,
   calcularEstadoRenovacion,
+  formatDate,
+  formatDateShort,
 } from '@/services/utils/date-utils';
 import { calcularNuevoPrecioIPC } from '@/services/utils/math-utils';
 

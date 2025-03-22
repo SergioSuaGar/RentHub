@@ -1,15 +1,14 @@
 import { FacturaService } from './factura-service';
 
 // Importar funciones de format
+import { formatCurrency, formatImporte, formatImportePagado } from '@/services/utils/format-utils';
+// Importar funciones de date-utils
 import {
-  formatCurrency,
+  calcularDiasEntreFechas,
+  obtenerUltimoDiaMes,
   formatDate,
   formatDateShort,
-  formatImporte,
-  formatImportePagado,
-} from '@/services/utils/format-utils';
-// Importar funciones de date-utils
-import { calcularDiasEntreFechas, obtenerUltimoDiaMes } from '@/services/utils/date-utils';
+} from '@/services/utils/date-utils';
 // Importar funciones de math-utils
 import { calcularImporteProporcionalPorDias } from '@/services/utils/math-utils';
 
@@ -53,19 +52,19 @@ export const calcularImporteProporcional = (precio, fechaInicio, fechaFin) => {
   return facturaService.calcularImporteProporcional(precio, fechaInicio, fechaFin);
 };
 
-// Exportamos todas las funciones de utilidad
+// Exportaciones
 export {
   formatCurrency,
-  formatDate,
-  formatDateShort,
   formatImporte,
   formatImportePagado,
+  formatDate,
+  formatDateShort,
   calcularDiasEntreFechas,
   obtenerUltimoDiaMes,
   calcularImporteProporcionalPorDias,
 };
 
-// Crear una exportación por defecto para mantener la compatibilidad con el código existente
+// Exportación predeterminada
 export default {
   loadFacturas,
   loadPropiedades,

@@ -19,7 +19,8 @@
 <script>
 import { ref, computed } from 'vue';
 import gastoService from '@/services/gasto-service';
-import { formatCurrency, formatDate } from '@/services/utils/format-utils';
+import { formatCurrency } from '@/services/utils/format-utils';
+import { formatDate } from '@/services/utils/date-utils';
 
 export default {
   name: 'GastoDeleteDialog',

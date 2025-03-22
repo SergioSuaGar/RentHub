@@ -486,6 +486,49 @@ export function isDateInRange(date, startDate, endDate) {
 }
 
 /**
+ * Formatea una fecha en formato largo con hora (ej: "1 de enero de 2023, 12:00")
+ * @param {Date|Timestamp|string|number} timestamp - Fecha a formatear
+ * @returns {string} - Fecha formateada
+ */
+export function formatDateWithTime(timestamp) {
+  if (!timestamp) return 'No disponible';
+
+  let dateObj;
+
+  // Manejar diferentes tipos de fecha
+  if (timestamp instanceof Date) {
+    dateObj = timestamp;
+  } else if (typeof timestamp === 'object' && timestamp.seconds) {
+    // Firebase Timestamp (formato antiguo)
+    dateObj = new Date(timestamp.seconds * 1000);
+  } else if (typeof timestamp === 'object' && timestamp.toDate) {
+    // Firebase Timestamp (formato nuevo)
+    dateObj = timestamp.toDate();
+  } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+    dateObj = new Date(timestamp);
+  } else {
+    return 'No disponible';
+  }
+
+  // Validar que sea una fecha válida
+  if (isNaN(dateObj.getTime())) return 'No disponible';
+
+  return dateObj.toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Re-exportar formatDate como formatDateShort para compatibilidad
+ * con el código que usaba formatDateShort de format-utils.js
+ */
+export const formatDateShort = formatDate;
+
+/**
  * Exporta todas las funciones de utilidad
  */
 export default {
@@ -513,4 +556,6 @@ export default {
   getLastDayOfMonth,
   isDateBefore,
   isDateInRange,
+  formatDateWithTime,
+  formatDateShort,
 };

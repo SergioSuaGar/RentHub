@@ -10,14 +10,13 @@ import { where, query, getDocs, collection } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 
 // Importar utilidades
+import { formatCurrency, formatImporte, formatImportePagado } from '@/services/utils/format-utils';
 import {
-  formatCurrency,
+  calcularDiasEntreFechas,
+  obtenerUltimoDiaMes,
   formatDate,
   formatDateShort,
-  formatImporte,
-  formatImportePagado,
-} from '@/services/utils/format-utils';
-import { calcularDiasEntreFechas, obtenerUltimoDiaMes } from '@/services/utils/date-utils';
+} from '@/services/utils/date-utils';
 import { calcularImporteProporcionalPorDias } from '@/services/utils/math-utils';
 
 // Instancia única de la clase (patrón Singleton)

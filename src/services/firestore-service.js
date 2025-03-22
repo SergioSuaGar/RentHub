@@ -3,7 +3,7 @@
  * Proporciona métodos CRUD genéricos para colecciones de Firestore
  */
 
-import { db } from '@/firebase';
+import { db } from '@/services/firebase';
 import {
   collection,
   doc,

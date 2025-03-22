@@ -5,9 +5,21 @@
  */
 
 import { FirestoreService } from './firestore-base';
-import { where, query, getDocs, collection } from 'firebase/firestore';
+import {
+  where,
+  query,
+  getDocs,
+  collection,
+  orderBy,
+  onSnapshot,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  updateDoc,
+} from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { formatDate, formatDateShort } from '@/services/utils/format-utils';
+import { formatDate, formatDateShort } from '@/services/utils/date-utils';
 
 // Instancia única de la clase (patrón Singleton)
 let instance = null;
