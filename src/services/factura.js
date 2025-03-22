@@ -1,6 +1,18 @@
 import { collection, query, getDocs, doc, setDoc, deleteDoc, where } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { sortProperties } from '@/config/propertyOrder';
+// Importar funciones de formateo del servicio centralizado
+import {
+  formatCurrency,
+  formatDate,
+  formatDateShort,
+  formatImporte,
+  formatImportePagado,
+} from '@/services/format';
+// Importar funciones de utilidades de fecha
+import { calcularDiasEntreFechas, obtenerUltimoDiaMes } from '@/services/date-utils';
+// Importar funciones de utilidades matemáticas
+import { calcularImporteProporcionalPorDias } from '@/services/math-utils';
 
 // Cargar facturas
 export const loadFacturas = async () => {
@@ -88,133 +100,25 @@ export const deleteFactura = async (facturaId) => {
   }
 };
 
-// Formatear moneda
-export const formatCurrency = (value) => {
-  if (!value) return '0 €';
-  return `${value} €`;
-};
+// Exportar las funciones de formateo del servicio centralizado
+export { formatCurrency, formatDate, formatDateShort, formatImporte, formatImportePagado };
 
-// Formatear fecha
-export const formatDate = (timestamp) => {
-  if (!timestamp) return 'No disponible';
+// Exportar las funciones de utilidades de fecha
+export { calcularDiasEntreFechas, obtenerUltimoDiaMes };
 
-  // Si es un objeto Timestamp de Firestore
-  if (timestamp.seconds) {
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  // Si es una cadena de fecha ISO
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  return 'No disponible';
-};
-
-// Formatear fecha corta
-export const formatDateShort = (timestamp) => {
-  if (!timestamp) return 'No disponible';
-
-  // Si es un objeto Timestamp de Firestore
-  if (timestamp.seconds) {
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  // Si es una cadena de fecha ISO
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  return 'No disponible';
-};
-
-// Formatear importe
-export const formatImporte = (value) => {
-  if (!value) return '';
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
-  if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
-  }
-  // Limitar a dos decimales
-  if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
-  }
-  return value;
-};
-
-// Formatear importe pagado
-export const formatImportePagado = (value) => {
-  if (!value) return '';
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
-  if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
-  }
-  // Limitar a dos decimales
-  if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
-  }
-  return value;
-};
+// Exportar funciones de utilidades matemáticas
+export { calcularImporteProporcionalPorDias };
 
 // Calcular importe proporcional
 export const calcularImporteProporcional = (precio, fechaInicio, fechaFin) => {
   if (!precio || !fechaInicio || !fechaFin) return '';
 
-  const inicio = new Date(fechaInicio);
-  const fin = new Date(fechaFin);
+  // Obtener el último día del mes utilizando la función del servicio date-utils
+  const ultimoDiaMes = obtenerUltimoDiaMes(fechaInicio);
 
-  // Obtener el último día del mes
-  const ultimoDiaMes = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0).getDate();
+  // Calcular días ocupados utilizando la función del servicio date-utils
+  const diasOcupados = calcularDiasEntreFechas(fechaInicio, fechaFin);
 
-  // Calcular días ocupados (fin - inicio)
-  const diasOcupados = Math.floor((fin - inicio) / (1000 * 60 * 60 * 24));
-
-  // Convertir el precio a número
-  const precioNumerico = parseFloat(precio.toString().replace(',', '.'));
-
-  // Calcular el precio por día basado en los días reales del mes
-  const precioDiario = precioNumerico / ultimoDiaMes;
-
-  // Calcular el importe total
-  const importeCalculado = precioDiario * diasOcupados;
-
-  // Redondear a 2 decimales y formatear
-  let importeFormateado = importeCalculado.toFixed(2).replace('.', ',');
-
-  // Eliminar decimales si son ceros
-  if (importeFormateado.endsWith(',00')) {
-    importeFormateado = importeFormateado.slice(0, -3);
-  }
-
-  return importeFormateado;
+  // Utilizar la función del servicio math-utils para calcular el importe proporcional
+  return calcularImporteProporcionalPorDias(precio, diasOcupados, ultimoDiaMes);
 };

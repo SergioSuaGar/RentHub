@@ -14,6 +14,17 @@ import {
 } from 'firebase/firestore';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
 import { sortProperties } from '@/config/propertyOrder';
+// Importar funciones de formateo del servicio centralizado
+import { formatCurrency, formatDate, formatDateShort, formatPrecio } from '@/services/format';
+// Importar funciones de utilidades de fecha
+import {
+  isoToDateInput,
+  dateInputToIso,
+  calcularFechaRenovacion,
+  calcularEstadoRenovacion,
+} from '@/services/date-utils';
+// Importar funciones de utilidades matemáticas
+import { calcularNuevoPrecioIPC } from '@/services/math-utils';
 
 const contratosCollection = collection(db, 'contratos');
 
@@ -263,150 +274,14 @@ export const eliminarDocumentoContrato = async (contratoId, documentoPath, userI
   }
 };
 
-// Formatear moneda
-export const formatCurrency = (value) => {
-  if (!value) return '0,00 €';
-  return `${value} €`;
-};
+// Exportar las funciones de formateo del servicio centralizado
+export { formatCurrency, formatDate, formatDateShort, formatPrecio };
 
-// Formatear fecha
-export const formatDate = (timestamp) => {
-  if (!timestamp) return 'No disponible';
+// Exportar las funciones de utilidades de fecha
+export { isoToDateInput, dateInputToIso, calcularFechaRenovacion, calcularEstadoRenovacion };
 
-  // Si es un objeto Timestamp de Firestore
-  if (timestamp.seconds) {
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  // Si es una cadena de fecha ISO
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  return 'No disponible';
-};
-
-// Formatear fecha corta
-export const formatDateShort = (timestamp) => {
-  if (!timestamp) return 'No disponible';
-
-  // Si es un objeto Timestamp de Firestore
-  if (timestamp.seconds) {
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  // Si es una cadena de fecha ISO
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  return 'No disponible';
-};
-
-// Formatear precio
-export const formatPrecio = (value) => {
-  if (!value) return '';
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
-  if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
-  }
-  // Limitar a dos decimales
-  if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
-  }
-  return value;
-};
-
-// Calcular fecha de renovación
-export const calcularFechaRenovacion = (fechaInicio) => {
-  if (!fechaInicio) return '';
-  const fecha = new Date(fechaInicio);
-  fecha.setFullYear(fecha.getFullYear() + 1);
-  fecha.setDate(fecha.getDate() - 1); // Restar un día para que sea el día anterior al año
-  return fecha.toISOString().split('T')[0];
-};
-
-// Calcular el estado de renovación de un contrato
-export const calcularEstadoRenovacion = (fechaRenovacion, ipcAjustado = true) => {
-  if (!fechaRenovacion) return { estado: 'Vigente', color: 'success' };
-
-  const fechaRenovacionObj = new Date(fechaRenovacion);
-  const hoy = new Date();
-
-  // Establecer las horas a 0 para comparar solo fechas
-  fechaRenovacionObj.setHours(0, 0, 0, 0);
-  hoy.setHours(0, 0, 0, 0);
-
-  // Si la fecha de renovación es menor o igual a hoy
-  if (fechaRenovacionObj <= hoy) {
-    return { estado: 'Pendiente de Renovación', color: 'error' };
-  }
-
-  // Si el IPC no ha sido ajustado después de la última renovación
-  if (!ipcAjustado) {
-    return { estado: 'Pendiente de Ajuste IPC', color: 'warning' };
-  }
-
-  return { estado: 'Vigente', color: 'success' };
-};
-
-// Calcular nuevo precio con IPC
-export const calcularNuevoPrecioIPC = (precioActual, incrementoIPC) => {
-  if (!precioActual || !incrementoIPC) return '';
-
-  const precio = parseFloat(precioActual.replace(',', '.'));
-  const incremento = parseFloat(incrementoIPC.replace(',', '.'));
-  const nuevoPrecio = precio * (1 + incremento / 100);
-
-  // Convertir a string con 2 decimales y reemplazar punto por coma
-  let precioFormateado = nuevoPrecio.toFixed(2).replace('.', ',');
-
-  // Eliminar decimales si son ceros
-  if (precioFormateado.endsWith(',00')) {
-    precioFormateado = precioFormateado.slice(0, -3);
-  }
-
-  return precioFormateado;
-};
-
-// Función para convertir fecha ISO a formato de entrada (YYYY-MM-DD)
-export const isoToDateInput = (isoDate) => {
-  if (!isoDate) return '';
-  return isoDate.split('T')[0];
-};
-
-// Función para convertir fecha de entrada a ISO
-export const dateInputToIso = (inputDate) => {
-  if (!inputDate) return '';
-  return new Date(inputDate).toISOString();
-};
+// Exportar funciones de utilidades matemáticas
+export { calcularNuevoPrecioIPC };
 
 // Obtener contratos por ID de propiedad
 export const getByPropiedadId = async (propiedadId) => {
