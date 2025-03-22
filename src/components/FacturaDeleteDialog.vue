@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" max-width="500px">
+  <v-dialog :model-value="dialogComputed" @update:model-value="updateDialog" max-width="500px">
     <v-card>
       <v-card-title class="text-h5">¿Estás seguro de eliminar esta factura?</v-card-title>
       <v-card-actions>
@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 
@@ -41,8 +41,19 @@ const props = defineProps({
 
 const emit = defineEmits(['update:dialog', 'delete']);
 
+// Computed property para manejar v-model bidireccional
+const dialogComputed = computed({
+  get: () => props.dialog,
+  set: (value) => emit('update:dialog', value),
+});
+
+// Función auxiliar para actualizar el diálogo
+const updateDialog = (value) => {
+  emit('update:dialog', value);
+};
+
 const closeDialog = () => {
-  emit('update:dialog', false);
+  updateDialog(false);
 };
 
 const deleteFactura = async () => {

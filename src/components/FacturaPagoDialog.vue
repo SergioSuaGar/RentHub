@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" max-width="500px">
+  <v-dialog :model-value="dialogComputed" @update:model-value="updateDialog" max-width="500px">
     <v-card>
       <v-card-title class="text-h5">Registrar Pago</v-card-title>
       <v-card-text>
@@ -63,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, watch, computed } from 'vue';
 import { setDoc, doc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
@@ -77,6 +77,17 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:dialog', 'save']);
+
+// Computed property para manejar v-model bidireccional
+const dialogComputed = computed({
+  get: () => props.dialog,
+  set: (value) => emit('update:dialog', value),
+});
+
+// Función auxiliar para actualizar el diálogo
+const updateDialog = (value) => {
+  emit('update:dialog', value);
+};
 
 const { user } = useAuth();
 
@@ -127,7 +138,7 @@ const openDialog = () => {
 };
 
 const closeDialog = () => {
-  emit('update:dialog', false);
+  updateDialog(false);
   pagoData.value = {
     importePagado: '',
     fechaPago: new Date().toISOString().split('T')[0],

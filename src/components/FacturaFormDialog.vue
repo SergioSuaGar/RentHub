@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" max-width="600px">
+  <v-dialog :model-value="dialogComputed" @update:model-value="updateDialog" max-width="600px">
     <v-card>
       <v-card-title>
         <span class="text-h5">{{ formTitle }}</span>
@@ -139,6 +139,17 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:dialog', 'save']);
+
+// Computed property para manejar v-model bidireccional
+const dialogComputed = computed({
+  get: () => props.dialog,
+  set: (value) => emit('update:dialog', value),
+});
+
+// Función auxiliar para actualizar el diálogo
+const updateDialog = (value) => {
+  emit('update:dialog', value);
+};
 
 const { user } = useAuth();
 
