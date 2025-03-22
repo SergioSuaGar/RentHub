@@ -64,6 +64,14 @@ export class PropiedadService extends FirestoreService {
   }
 
   /**
+   * Carga las propiedades activas (alias de getActivas para mantener consistencia en API)
+   * @returns {Promise<Array>} - Lista de propiedades activas
+   */
+  async loadPropiedadesActivas() {
+    return this.getActivas();
+  }
+
+  /**
    * Crea una nueva propiedad
    * @param {Object} propiedadData - Datos de la propiedad
    * @param {string} userId - ID del usuario que crea la propiedad
