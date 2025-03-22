@@ -12,7 +12,7 @@ import { sortProperties } from '@/config/propertyOrder';
 
 class DashboardService extends FirestoreService {
   constructor() {
-    super();
+    super('dashboard');
     if (DashboardService.instance) {
       return DashboardService.instance;
     }

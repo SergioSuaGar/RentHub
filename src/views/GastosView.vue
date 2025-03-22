@@ -81,7 +81,7 @@
     </v-card>
 
     <!-- Formulario de gasto (componente extraído) -->
-    <gasto-form-dialog
+    <GastoFormDialog
       v-model="dialogForm"
       :edited-item="editedItem"
       :is-editing="editIndex !== -1"
@@ -90,7 +90,7 @@
     />
 
     <!-- Diálogo de eliminación (componente extraído) -->
-    <gasto-delete-dialog
+    <GastoDeleteDialog
       v-model="dialogDelete"
       :gasto="editedItem"
       @deleted="gastoEliminado"

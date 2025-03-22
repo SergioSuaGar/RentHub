@@ -203,7 +203,7 @@
         </v-row>
 
         <!-- Componente para crear factura -->
-        <factura-form
+        <FacturaForm
           v-model="dialogFactura"
           @saved="facturaGuardada"
           @close="cerrarFormularioFactura"

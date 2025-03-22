@@ -213,10 +213,10 @@
     </v-card>
 
     <!-- Componente PdfViewer -->
-    <pdf-viewer v-model="showPdfViewer" :file-path="selectedPdfPath" :title="selectedPdfTitle" />
+    <PdfViewer v-model="showPdfViewer" :file-path="selectedPdfPath" :title="selectedPdfTitle" />
 
     <!-- Diálogo para crear/editar contrato -->
-    <contrato-form
+    <ContratoForm
       v-model:dialog="dialog"
       :contrato="editedItem"
       :contratos="contratos"
@@ -251,14 +251,14 @@
     </v-dialog>
 
     <!-- Diálogo de Renovación -->
-    <contrato-renovacion-dialog
+    <ContratoRenovacionDialog
       v-model:dialog="dialogRenovacion"
       :contrato="editedItem"
       @save="handleRenovacionSave"
     />
 
     <!-- Diálogo de Ajuste IPC -->
-    <contrato-ajuste-ipc-dialog
+    <ContratoAjusteIPCDialog
       v-model:dialog="dialogAjusteIPC"
       :contrato="editedItem"
       @save="handleAjusteIPCSave"
