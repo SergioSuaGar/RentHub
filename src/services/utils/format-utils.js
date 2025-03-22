@@ -132,3 +132,16 @@ export const formatImporte = (value) => {
 export const formatImportePagado = (value) => {
   return formatNumericInput(value);
 };
+
+/**
+ * Exporta todas las funciones de utilidad
+ */
+export default {
+  formatCurrency,
+  formatDate,
+  formatDateShort,
+  formatNumericInput,
+  formatPrecio,
+  formatImporte,
+  formatImportePagado,
+};

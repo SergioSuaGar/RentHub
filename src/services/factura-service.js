@@ -16,9 +16,9 @@ import {
   formatDateShort,
   formatImporte,
   formatImportePagado,
-} from '@/services/format';
-import { calcularDiasEntreFechas, obtenerUltimoDiaMes } from '@/services/date-utils';
-import { calcularImporteProporcionalPorDias } from '@/services/math-utils';
+} from '@/services/utils/format-utils';
+import { calcularDiasEntreFechas, obtenerUltimoDiaMes } from '@/services/utils/date-utils';
+import { calcularImporteProporcionalPorDias } from '@/services/utils/math-utils';
 
 // Instancia única de la clase (patrón Singleton)
 let instance = null;

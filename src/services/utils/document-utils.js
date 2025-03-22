@@ -157,3 +157,17 @@ export const formatFileSize = (bytes) => {
 
   return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
 };
+
+/**
+ * Exporta todas las funciones de utilidad
+ */
+export default {
+  uploadFile,
+  deleteFile,
+  getFileUrl,
+  fileExists,
+  getFileName,
+  getFileExtension,
+  isValidFileExtension,
+  formatFileSize,
+};

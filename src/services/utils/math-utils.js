@@ -86,3 +86,13 @@ export const numeroATexto = (numero, decimales = 2) => {
 
   return textoFormateado;
 };
+
+/**
+ * Exporta todas las funciones de utilidad
+ */
+export default {
+  calcularNuevoPrecioIPC,
+  calcularImporteProporcionalPorDias,
+  textoANumero,
+  numeroATexto,
+};

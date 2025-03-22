@@ -11,14 +11,19 @@ import { db, storage } from '@/services/firebase';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
 
 // Importar utilidades
-import { formatCurrency, formatDate, formatDateShort, formatPrecio } from '@/services/format';
+import {
+  formatCurrency,
+  formatDate,
+  formatDateShort,
+  formatPrecio,
+} from '@/services/utils/format-utils';
 import {
   isoToDateInput,
   dateInputToIso,
   calcularFechaRenovacion,
   calcularEstadoRenovacion,
-} from '@/services/date-utils';
-import { calcularNuevoPrecioIPC } from '@/services/math-utils';
+} from '@/services/utils/date-utils';
+import { calcularNuevoPrecioIPC } from '@/services/utils/math-utils';
 
 // Instancia única de la clase (patrón Singleton)
 let instance = null;

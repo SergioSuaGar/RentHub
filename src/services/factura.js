@@ -1,16 +1,17 @@
 import { FacturaService } from './factura-service';
 
-// Re-exportar las funciones de formato y utilidades
+// Importar funciones de format
 import {
   formatCurrency,
   formatDate,
   formatDateShort,
   formatImporte,
   formatImportePagado,
-  calcularDiasEntreFechas,
-  obtenerUltimoDiaMes,
-  calcularImporteProporcionalPorDias,
-} from './factura-service';
+} from '@/services/utils/format-utils';
+// Importar funciones de date-utils
+import { calcularDiasEntreFechas, obtenerUltimoDiaMes } from '@/services/utils/date-utils';
+// Importar funciones de math-utils
+import { calcularImporteProporcionalPorDias } from '@/services/utils/math-utils';
 
 // Obtener la instancia del servicio
 const facturaService = FacturaService.getInstance();

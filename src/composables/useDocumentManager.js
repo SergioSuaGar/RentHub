@@ -12,7 +12,7 @@ import {
   getFileName,
   isValidFileExtension,
   formatFileSize,
-} from '@/services/document-utils';
+} from '@/services/utils/document-utils';
 
 /**
  * Hook para gestionar documentos

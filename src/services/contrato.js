@@ -1,17 +1,21 @@
 import { ContratoService } from './contrato-service';
 
-// Re-exportar las funciones de formato y utilidades
+// Importar funciones de format
 import {
   formatCurrency,
   formatDate,
   formatDateShort,
   formatPrecio,
+} from '@/services/utils/format-utils';
+// Importar funciones de date-utils
+import {
   isoToDateInput,
   dateInputToIso,
   calcularFechaRenovacion,
   calcularEstadoRenovacion,
-  calcularNuevoPrecioIPC,
-} from './contrato-service';
+} from '@/services/utils/date-utils';
+// Importar funciones de math-utils
+import { calcularNuevoPrecioIPC } from '@/services/utils/math-utils';
 
 // Obtener la instancia del servicio
 const contratoService = ContratoService.getInstance();
