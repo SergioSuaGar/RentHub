@@ -216,144 +216,12 @@
     <pdf-viewer v-model="showPdfViewer" :file-path="selectedPdfPath" :title="selectedPdfTitle" />
 
     <!-- Diálogo para crear/editar contrato -->
-    <v-dialog v-model="dialog" max-width="800px">
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">{{ formTitle }}</span>
-        </v-card-title>
-
-        <v-card-text>
-          <v-form ref="form" v-model="formValid" @submit.prevent="handleSubmit" lazy-validation>
-            <v-container>
-              <v-row>
-                <v-col cols="12" sm="6">
-                  <v-select
-                    v-model="editedItem.propiedadId"
-                    :items="propiedades"
-                    item-title="nombre"
-                    item-value="id"
-                    label="Propiedad *"
-                    :rules="[rules.required]"
-                    required
-                    :hint="'Selecciona una propiedad'"
-                    persistent-hint
-                    @update:model-value="updatePropiedadNombre"
-                  ></v-select>
-                </v-col>
-                <v-col cols="12">
-                  <v-select
-                    v-model="editedItem.inquilinosIds"
-                    :items="inquilinos"
-                    item-title="nombreCompleto"
-                    item-value="id"
-                    label="Inquilinos *"
-                    :rules="[rules.required, rules.inquilinosRequired]"
-                    required
-                    multiple
-                    chips
-                    closable-chips
-                    searchable
-                    :hint="'Selecciona los inquilinos del contrato'"
-                    persistent-hint
-                    @update:model-value="updateInquilinosNombres"
-                  ></v-select>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    v-model="editedItem.precio"
-                    label="Precio *"
-                    :rules="[rules.required, rules.numeric]"
-                    required
-                    :hint="'Introduce el precio (usar coma para decimales)'"
-                    persistent-hint
-                    @input="formatPrecio"
-                    validate-on-blur
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    type="date"
-                    v-model="editedItem.fechaInicio"
-                    label="Fecha Inicio *"
-                    :rules="[rules.required]"
-                    required
-                    :hint="'Selecciona la fecha de inicio'"
-                    persistent-hint
-                    @update:model-value="calcularFechaRenovacion"
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    type="date"
-                    v-model="editedItem.fechaRenovacion"
-                    label="Fecha Renovación"
-                    :hint="'Fecha de renovación (se calcula automáticamente)'"
-                    persistent-hint
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-divider class="my-2"></v-divider>
-                  <div class="text-subtitle-1 mb-2">Documento del Contrato</div>
-                  <FileUploader
-                    folder="contratos"
-                    @upload-success="handleFileUploadSuccess"
-                    @upload-error="handleFileUploadError"
-                    :button-text="
-                      editedItem.documentoUrl
-                        ? 'Cambiar PDF del Contrato'
-                        : 'Subir PDF del Contrato'
-                    "
-                  />
-                  <div v-if="editedItem.documentoUrl" class="mt-2">
-                    <v-btn
-                      color="primary"
-                      variant="text"
-                      :href="editedItem.documentoUrl"
-                      target="_blank"
-                      prepend-icon="mdi-file-pdf-box"
-                      class="mr-2"
-                    >
-                      Ver PDF
-                    </v-btn>
-                    <v-btn
-                      color="error"
-                      variant="text"
-                      @click="eliminarDocumento"
-                      prepend-icon="mdi-delete"
-                      :loading="eliminandoDocumento"
-                    >
-                      Eliminar PDF
-                    </v-btn>
-                  </div>
-                </v-col>
-              </v-row>
-            </v-container>
-          </v-form>
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-            color="secondary"
-            variant="text"
-            @click="closeDialog"
-            :title="'Cancelar la operación actual'"
-          >
-            Cancelar
-          </v-btn>
-          <v-btn
-            color="primary"
-            variant="text"
-            @click="handleSubmit"
-            :loading="saving"
-            :disabled="!formValid || saving"
-            :title="'Guardar los cambios realizados'"
-          >
-            Guardar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <contrato-form
+      v-model:dialog="dialog"
+      :contrato="editedItem"
+      :contratos="contratos"
+      @save="handleContratoSave"
+    />
 
     <!-- Diálogo de confirmación para eliminar -->
     <v-dialog v-model="dialogDelete" max-width="500px">
@@ -383,100 +251,18 @@
     </v-dialog>
 
     <!-- Diálogo de Renovación -->
-    <v-dialog v-model="dialogRenovacion" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5">Renovar Contrato</v-card-title>
-        <v-card-text>
-          <v-form ref="formRenovacion" v-model="formRenovacionValid" lazy-validation>
-            <v-container>
-              <v-row>
-                <v-col cols="12">
-                  <div class="text-subtitle-1 mb-2">¿Deseas renovar el contrato?</div>
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field
-                    type="date"
-                    v-model="editedItem.fechaRenovacion"
-                    label="Nueva Fecha de Renovación"
-                    :hint="'Selecciona la nueva fecha de renovación'"
-                    persistent-hint
-                  ></v-text-field>
-                </v-col>
-              </v-row>
-            </v-container>
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="secondary" variant="text" @click="dialogRenovacion = false">
-            Cancelar
-          </v-btn>
-          <v-btn color="primary" variant="text" @click="renovarContrato" :loading="saving">
-            Renovar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <contrato-renovacion-dialog
+      v-model:dialog="dialogRenovacion"
+      :contrato="editedItem"
+      @save="handleRenovacionSave"
+    />
 
     <!-- Diálogo de Ajuste IPC -->
-    <v-dialog v-model="dialogAjusteIPC" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5">Ajustar Precio por IPC</v-card-title>
-        <v-card-text>
-          <v-form ref="formAjusteIPC" v-model="formAjusteIPCValid" lazy-validation>
-            <v-container>
-              <v-row>
-                <v-col cols="12">
-                  <div class="text-subtitle-1 mb-2">Precio Actual:</div>
-                  <div class="text-h6 mb-4">{{ formatCurrency(ajusteIPCData.precioActual) }}</div>
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="ajusteIPCData.incrementoIPC"
-                    label="Incremento IPC (%) *"
-                    :rules="[rules.required, rules.numeric]"
-                    required
-                    :hint="'Introduce el porcentaje de incremento del IPC'"
-                    persistent-hint
-                    @input="
-                      calcularNuevoPrecio(ajusteIPCData.precioActual, ajusteIPCData.incrementoIPC)
-                    "
-                    validate-on-blur
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="ajusteIPCData.nuevoPrecio"
-                    label="Nuevo Precio *"
-                    :rules="[rules.required, rules.numeric]"
-                    required
-                    :hint="'Puedes ajustar manualmente el nuevo precio'"
-                    persistent-hint
-                    @input="formatPrecioIPC"
-                    validate-on-blur
-                  ></v-text-field>
-                </v-col>
-              </v-row>
-            </v-container>
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="secondary" variant="text" @click="dialogAjusteIPC = false">
-            Cancelar
-          </v-btn>
-          <v-btn
-            color="primary"
-            variant="text"
-            @click="ajustarIPC"
-            :loading="saving"
-            :disabled="!formAjusteIPCValid || !ajusteIPCData.nuevoPrecio"
-          >
-            Ajustar Precio
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <contrato-ajuste-ipc-dialog
+      v-model:dialog="dialogAjusteIPC"
+      :contrato="editedItem"
+      @save="handleAjusteIPCSave"
+    />
   </div>
 </template>
 
@@ -490,6 +276,12 @@ import { sortProperties } from '@/config/propertyOrder';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
 import FileUploader from '@/components/FileUploader.vue';
 import PdfViewer from '@/components/PdfViewer.vue';
+import ContratoService from '@/services/contrato';
+import PropiedadService from '@/services/propiedad';
+import InquilinoService from '@/services/inquilino';
+import ContratoForm from '@/components/ContratoForm.vue';
+import ContratoRenovacionDialog from '@/components/ContratoRenovacionDialog.vue';
+import ContratoAjusteIPCDialog from '@/components/ContratoAjusteIPCDialog.vue';
 
 const { user } = useAuth();
 
@@ -564,17 +356,6 @@ const headers = [
 // Variables para los diálogos de renovación y ajuste IPC
 const dialogRenovacion = ref(false);
 const dialogAjusteIPC = ref(false);
-const formRenovacion = ref(null);
-const formAjusteIPC = ref(null);
-const formRenovacionValid = ref(false);
-const formAjusteIPCValid = ref(false);
-
-// Variables para el ajuste IPC
-const ajusteIPCData = ref({
-  precioActual: '',
-  incrementoIPC: '',
-  nuevoPrecio: '',
-});
 
 // Reglas de validación
 const form = ref(null);
@@ -819,15 +600,11 @@ const openDialog = (item) => {
   editedIndex.value = item ? contratos.value.indexOf(item) : -1;
   editedItem.value = item ? { ...item } : { ...defaultItem };
   dialog.value = true;
-  nextTick(async () => {
-    form.value?.resetValidation();
-    if (item) {
-      formValid.value = true;
-    }
-    // Recargar las listas filtradas después de establecer editedItem
-    await loadPropiedades();
-    await loadInquilinos();
-  });
+};
+
+// Manejar el guardado del contrato desde el formulario
+const handleContratoSave = async () => {
+  await loadContratos();
 };
 
 // Cerrar diálogo
@@ -835,10 +612,6 @@ const closeDialog = () => {
   dialog.value = false;
   editedIndex.value = -1;
   editedItem.value = { ...defaultItem };
-  nextTick(() => {
-    form.value?.reset();
-    formValid.value = false;
-  });
 };
 
 // Manejar el envío del formulario
@@ -870,14 +643,13 @@ const saveContrato = async () => {
     };
 
     if (editedIndex.value > -1) {
-      await setDoc(doc(db, 'contratos', editedItem.value.id), itemData, { merge: true });
+      await ContratoService.update(contratos.value[editedIndex.value].id, itemData);
       Object.assign(contratos.value[editedIndex.value], itemData);
     } else {
       itemData.createdAt = new Date();
       itemData.createdBy = user.value.uid;
-      const docRef = doc(collection(db, 'contratos'));
-      await setDoc(docRef, itemData);
-      const newItem = { ...itemData, id: docRef.id };
+      const id = await ContratoService.create(itemData);
+      const newItem = { ...itemData, id };
       contratos.value.push(newItem);
       totalItems.value++;
     }
@@ -907,7 +679,7 @@ const closeDelete = () => {
 // Eliminar contrato
 const deleteItemConfirm = async () => {
   try {
-    await deleteDoc(doc(db, 'contratos', editedItem.value.id));
+    await ContratoService.delete(contratos.value[editedIndex.value].id);
     contratos.value.splice(editedIndex.value, 1);
     closeDelete();
   } catch (error) {
@@ -933,15 +705,11 @@ const updateInquilinosNombres = (inquilinosIds) => {
 const toggleEstado = async (item) => {
   try {
     const newEstado = !item.estado;
-    await setDoc(
-      doc(db, 'contratos', item.id),
-      {
-        estado: newEstado,
-        updatedAt: new Date(),
-        updatedBy: user.value.uid,
-      },
-      { merge: true }
-    );
+    await ContratoService.update(item.id, {
+      estado: newEstado,
+      updatedAt: new Date(),
+      updatedBy: user.value.uid,
+    });
     item.estado = newEstado;
   } catch (error) {
     console.error('Error al cambiar estado:', error);
@@ -1033,77 +801,22 @@ const handleEstadoRenovacionClick = (item) => {
   if (estado === 'Pendiente de Renovación') {
     // Abrir diálogo de renovación
     editedItem.value = { ...item };
-    // Calcular la nueva fecha de renovación (un año después)
-    const fechaRenovacionActual = new Date(item.fechaRenovacion);
-    fechaRenovacionActual.setFullYear(fechaRenovacionActual.getFullYear() + 1);
-    // Convertir la fecha al formato de entrada YYYY-MM-DD
-    editedItem.value.fechaRenovacion = isoToDateInput(fechaRenovacionActual.toISOString());
     dialogRenovacion.value = true;
   } else if (estado === 'Pendiente de Ajuste IPC') {
     // Abrir diálogo de ajuste IPC
     editedItem.value = { ...item };
-    ajusteIPCData.value = {
-      precioActual: item.precio.toString().replace('.', ','),
-      incrementoIPC: '',
-      nuevoPrecio: '',
-    };
     dialogAjusteIPC.value = true;
   }
 };
 
-// Función para renovar contrato
-const renovarContrato = async () => {
-  try {
-    saving.value = true;
-    // Asegurarnos de que la fecha se guarda en formato YYYY-MM-DD
-    const fechaRenovacion = editedItem.value.fechaRenovacion;
-
-    await setDoc(
-      doc(db, 'contratos', editedItem.value.id),
-      {
-        fechaRenovacion,
-        ipcAjustado: false,
-        updatedAt: new Date().toISOString(),
-        updatedBy: user.value.uid,
-      },
-      { merge: true }
-    );
-
-    dialogRenovacion.value = false;
-    await loadContratos();
-  } catch (error) {
-    console.error('Error al renovar contrato:', error);
-  } finally {
-    saving.value = false;
-  }
+// Manejar el guardado de la renovación desde el diálogo
+const handleRenovacionSave = async () => {
+  await loadContratos();
 };
 
-// Función para ajustar IPC
-const ajustarIPC = async () => {
-  if (!formAjusteIPCValid.value) return;
-
-  try {
-    saving.value = true;
-    const nuevoPrecio = ajusteIPCData.value.nuevoPrecio.replace(',', '.');
-
-    await setDoc(
-      doc(db, 'contratos', editedItem.value.id),
-      {
-        precio: nuevoPrecio,
-        ipcAjustado: true, // Marcar que el IPC ha sido ajustado
-        updatedAt: new Date().toISOString(),
-        updatedBy: user.value.uid,
-      },
-      { merge: true }
-    );
-
-    dialogAjusteIPC.value = false;
-    await loadContratos();
-  } catch (error) {
-    console.error('Error al ajustar IPC:', error);
-  } finally {
-    saving.value = false;
-  }
+// Manejar el guardado del ajuste IPC desde el diálogo
+const handleAjusteIPCSave = async () => {
+  await loadContratos();
 };
 
 const eliminandoDocumento = ref(false);
@@ -1133,16 +846,12 @@ const eliminarDocumento = async () => {
 
     // Si estamos editando un contrato existente, actualizamos el documento en Firestore
     if (editedIndex.value > -1) {
-      await setDoc(
-        doc(db, 'contratos', editedItem.value.id),
-        {
-          documentoUrl: null,
-          documentoPath: null,
-          updatedAt: new Date(),
-          updatedBy: user.value.uid,
-        },
-        { merge: true }
-      );
+      await ContratoService.update(contratos.value[editedIndex.value].id, {
+        documentoUrl: null,
+        documentoPath: null,
+        updatedAt: new Date(),
+        updatedBy: user.value.uid,
+      });
     }
   } catch (error) {
     console.error('Error al eliminar el documento:', error);
@@ -1153,7 +862,7 @@ const eliminarDocumento = async () => {
 
 // Cargar datos iniciales
 onMounted(async () => {
-  await loadContratos(); // Esto cargará propiedades e inquilinos después
+  await loadContratos();
 });
 </script>
 
