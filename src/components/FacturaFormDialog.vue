@@ -117,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, watch } from 'vue';
 import { collection, query, getDocs, where } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';

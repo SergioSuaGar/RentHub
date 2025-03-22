@@ -332,6 +332,78 @@ onMounted(async () => {
   facturas.value = await loadFacturas();
   totalItems.value = facturas.value.length;
 });
+
+// Funciones para gestionar los diálogos
+const openDialog = (item = null) => {
+  editedIndex.value = item ? facturas.value.indexOf(item) : -1;
+  editedItem.value = item ? { ...item } : { ...defaultItem };
+  dialog.value = true;
+};
+
+const confirmDelete = (item) => {
+  editedIndex.value = facturas.value.indexOf(item);
+  editedItem.value = { ...item };
+  dialogDelete.value = true;
+};
+
+const toggleEstado = (item) => {
+  if (item.estado === 'pendiente') {
+    editedIndex.value = facturas.value.indexOf(item);
+    editedItem.value = { ...item };
+    dialogPago.value = true;
+  }
+};
+
+// Funciones para manejar los eventos de los diálogos
+const handleFacturaSave = async (factura) => {
+  try {
+    loading.value = true;
+
+    // Si es una nueva factura, se añade al principio
+    if (editedIndex.value === -1) {
+      facturas.value.unshift(factura);
+    } else {
+      // Si es una edición, se actualiza en el índice correspondiente
+      Object.assign(facturas.value[editedIndex.value], factura);
+    }
+
+    dialog.value = false;
+    loading.value = false;
+  } catch (error) {
+    console.error('Error al guardar factura:', error);
+    loading.value = false;
+  }
+};
+
+const deleteItemConfirm = async () => {
+  try {
+    loading.value = true;
+
+    // Eliminar la factura del array
+    facturas.value.splice(editedIndex.value, 1);
+
+    dialogDelete.value = false;
+    loading.value = false;
+  } catch (error) {
+    console.error('Error al eliminar factura:', error);
+    loading.value = false;
+  }
+};
+
+const handlePagoSave = async (factura) => {
+  try {
+    loading.value = true;
+
+    // Actualizar la factura en el array
+    Object.assign(facturas.value[editedIndex.value], factura);
+
+    dialogPago.value = false;
+    loading.value = false;
+  } catch (error) {
+    console.error('Error al registrar pago:', error);
+    loading.value = false;
+  }
+};
 </script>
 
 <style scoped>
