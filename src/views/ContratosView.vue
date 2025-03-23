@@ -395,21 +395,14 @@ const loadContratosData = async () => {
   try {
     // Cargar todas las propiedades sin filtrar
     propiedades.value = await loadTodasLasPropiedades();
-    console.log('Propiedades cargadas:', propiedades.value);
 
     // Luego cargar contratos
     const contratosData = await loadContratos();
-    console.log('Contratos data cargada:', contratosData);
 
     // Mapear contratos y asignar nombres de propiedades
     contratos.value = contratosData.map((contrato) => {
       // Buscar la propiedad correspondiente
       const propiedad = propiedades.value.find((p) => p.id === contrato.propiedadId);
-      console.log(
-        `Contrato ID: ${contrato.id}, PropiedadID: ${contrato.propiedadId}, 
-                   Propiedad encontrada:`,
-        propiedad
-      );
 
       // Asignar el nombre de la propiedad o un valor por defecto
       const propiedadNombre = propiedad ? propiedad.nombre : 'Sin asignar';
@@ -420,7 +413,6 @@ const loadContratosData = async () => {
       };
     });
 
-    console.log('Contratos procesados:', contratos.value);
     totalItems.value = contratos.value.length;
 
     // Después cargar inquilinos disponibles para el formulario
@@ -458,7 +450,17 @@ const openPdfViewer = (item) => {
 // Abrir diálogo
 const openDialog = (item) => {
   editedIndex.value = item ? contratos.value.indexOf(item) : -1;
-  editedItem.value = item ? { ...item } : { ...defaultItem };
+
+  // Si estamos editando un contrato existente
+  if (item) {
+    // Crear una copia profunda del objeto para evitar modificaciones por referencia
+    editedItem.value = JSON.parse(JSON.stringify(item));
+  } else {
+    // Si es un nuevo contrato
+    editedItem.value = { ...defaultItem };
+  }
+
+  // Abrir el diálogo después de asignar el item
   dialog.value = true;
 };
 

@@ -143,7 +143,7 @@ import { useAuth } from '@/composables/useAuth';
 import FileUploader from '@/components/FileUploader.vue';
 import PropiedadService from '@/services/propiedad';
 import InquilinoService from '@/services/inquilino';
-import ContratoService from '@/services/contrato';
+import { createContrato, updateContrato } from '@/services/contrato';
 import { storage } from '@/services/firebase';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
 
@@ -179,7 +179,22 @@ const formValid = ref(false);
 const saving = ref(false);
 const eliminandoDocumento = ref(false);
 
-const editedItem = ref({ ...props.contrato });
+// Definir un objeto para el item por defecto con todas las propiedades necesarias
+const defaultItem = {
+  propiedadId: '',
+  propiedadNombre: '',
+  inquilinosIds: [],
+  inquilinosNombres: [],
+  precio: '',
+  fechaInicio: '',
+  fechaRenovacion: '',
+  estado: true,
+  documentoUrl: null,
+  documentoPath: null,
+};
+
+// Inicializar editedItem con una mezcla del objeto por defecto y el contrato pasado
+const editedItem = ref({ ...defaultItem, ...props.contrato });
 
 const propiedades = ref([]);
 const inquilinos = ref([]);
@@ -326,11 +341,11 @@ const handleSubmit = async () => {
     };
 
     if (props.contrato.id) {
-      await ContratoService.update(props.contrato.id, itemData);
+      await updateContrato(props.contrato.id, itemData, user.value.uid);
     } else {
       itemData.createdAt = new Date().toISOString();
       itemData.createdBy = user.value.uid;
-      await ContratoService.create(itemData);
+      await createContrato(itemData, user.value.uid);
     }
 
     emit('save');
@@ -345,7 +360,8 @@ const handleSubmit = async () => {
 const closeDialog = () => {
   updateDialog(false);
   nextTick(() => {
-    editedItem.value = { ...props.contrato };
+    // Reinicializa el formulario con una mezcla de valores por defecto y el contrato actual
+    editedItem.value = { ...defaultItem, ...props.contrato };
     form.value?.reset();
     formValid.value = false;
   });
@@ -359,5 +375,14 @@ watch(
       await loadInquilinos();
     }
   }
+);
+
+// Observar cambios en el contrato y actualizar editedItem
+watch(
+  () => props.contrato,
+  (newContrato) => {
+    editedItem.value = { ...newContrato };
+  },
+  { deep: true, immediate: true }
 );
 </script>
