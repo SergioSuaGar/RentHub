@@ -27,6 +27,11 @@ export const loadPropiedadesParaContratos = async (editando = false, propiedadId
   return contratoService.loadPropiedadesParaContratos(editando, propiedadIdActual);
 };
 
+// Cargar todas las propiedades (sin filtrar por disponibilidad para contratos)
+export const loadTodasLasPropiedades = async () => {
+  return contratoService.loadPropiedadesParaContratos('all');
+};
+
 // Cargar inquilinos para contratos
 export const loadInquilinosParaContratos = async (editando = false, inquilinosIdsActuales = []) => {
   return contratoService.loadInquilinosParaContratos(editando, inquilinosIdsActuales);
@@ -100,6 +105,7 @@ export {
 export default {
   loadContratos,
   loadPropiedadesParaContratos,
+  loadTodasLasPropiedades,
   loadInquilinosParaContratos,
   getContratoById,
   createContrato,

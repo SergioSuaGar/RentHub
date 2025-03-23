@@ -76,6 +76,11 @@ export class ContratoService extends FirestoreService {
         }))
       );
 
+      // Para la visualización en tablas, devolver todas las propiedades
+      if (editando === 'all') {
+        return todasLasPropiedades;
+      }
+
       // Obtener contratos activos
       const contratosData = await this.loadContratos();
       const contratosActivos = contratosData.filter((c) => c.estado);

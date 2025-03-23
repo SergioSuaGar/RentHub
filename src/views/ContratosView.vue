@@ -63,6 +63,11 @@
             {{ formatDateShort(item.fechaRenovacion) }}
           </template>
 
+          <!-- Columna de propiedad -->
+          <template #[`item.propiedadNombre`]="{ item }">
+            {{ item.propiedadNombre || 'Sin asignar' }}
+          </template>
+
           <!-- Columna de estado de renovación -->
           <template #[`item.estadoRenovacion`]="{ item }">
             <v-chip
@@ -86,23 +91,8 @@
           </template>
 
           <!-- Columna de inquilinos -->
-          <template #[`item.inquilinosIds`]>
-            <v-select
-              v-model="editedItem.inquilinosIds"
-              :items="inquilinos"
-              item-title="nombreCompleto"
-              item-value="id"
-              label="Inquilinos *"
-              :rules="[rules.required, rules.inquilinosRequired]"
-              required
-              multiple
-              chips
-              closable-chips
-              searchable
-              :hint="'Selecciona los inquilinos del contrato'"
-              persistent-hint
-              @update:model-value="updateInquilinosNombres"
-            ></v-select>
+          <template #[`item.inquilinosIds`]="{ item }">
+            {{ item.inquilinosNombres.join(', ') }}
           </template>
 
           <!-- Columna de acciones -->
@@ -280,6 +270,7 @@ import ContratoAjusteIPCDialog from '@/components/ContratoAjusteIPCDialog.vue';
 import {
   loadContratos,
   loadPropiedadesParaContratos,
+  loadTodasLasPropiedades,
   loadInquilinosParaContratos,
   createContrato,
   updateContrato,
@@ -402,22 +393,37 @@ const selectedPdfTitle = ref('');
 const loadContratosData = async () => {
   loading.value = true;
   try {
-    // Cargar propiedades primero
-    propiedades.value = await loadPropiedadesParaContratos();
+    // Cargar todas las propiedades sin filtrar
+    propiedades.value = await loadTodasLasPropiedades();
+    console.log('Propiedades cargadas:', propiedades.value);
 
     // Luego cargar contratos
     const contratosData = await loadContratos();
+    console.log('Contratos data cargada:', contratosData);
+
+    // Mapear contratos y asignar nombres de propiedades
     contratos.value = contratosData.map((contrato) => {
+      // Buscar la propiedad correspondiente
       const propiedad = propiedades.value.find((p) => p.id === contrato.propiedadId);
+      console.log(
+        `Contrato ID: ${contrato.id}, PropiedadID: ${contrato.propiedadId}, 
+                   Propiedad encontrada:`,
+        propiedad
+      );
+
+      // Asignar el nombre de la propiedad o un valor por defecto
+      const propiedadNombre = propiedad ? propiedad.nombre : 'Sin asignar';
+
       return {
         ...contrato,
-        propiedadNombre: propiedad ? propiedad.nombre : '',
+        propiedadNombre,
       };
     });
 
+    console.log('Contratos procesados:', contratos.value);
     totalItems.value = contratos.value.length;
 
-    // Después cargar inquilinos disponibles
+    // Después cargar inquilinos disponibles para el formulario
     await loadInquilinosData();
   } catch (error) {
     console.error('Error al cargar contratos:', error);
