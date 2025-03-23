@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" max-width="800px" persistent>
+  <v-dialog :model-value="dialog" @update:model-value="updateDialog" max-width="800px" persistent>
     <v-card>
       <v-card-title class="primary white--text">
         {{ isEditing ? 'Editar Gasto' : 'Nuevo Gasto' }}
@@ -22,7 +22,7 @@
               <v-select
                 v-model="editedItem.propiedadId"
                 :items="propiedades"
-                item-text="nombre"
+                item-title="nombre"
                 item-value="id"
                 label="Propiedad*"
                 :rules="[(v) => !!v || 'La propiedad es obligatoria']"
@@ -58,7 +58,6 @@
                 </template>
                 <v-date-picker
                   v-model="editedItem.fecha"
-                  v-model:active-picker="picker"
                   @change="guardarFecha"
                   locale="es-ES"
                 ></v-date-picker>
@@ -146,181 +145,172 @@
   </v-dialog>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, watch, reactive } from 'vue';
-import { auth } from '@/services/firebase';
+import { useAuth } from '@/composables/useAuth';
 import propiedadService from '@/services/propiedad-service';
-import gastoService from '@/services/gasto-service';
+import { createGasto, updateGasto } from '@/services/gasto';
 import { formatDate } from '@/services/utils/date-utils';
 import { formatPrecio } from '@/services/utils/format-utils';
 
-export default {
-  name: 'GastoFormDialog',
-
-  props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    editedItem: {
-      type: Object,
-      default: () => ({
-        tipo: '',
-        propiedadId: null,
-        fecha: new Date().toISOString().substr(0, 10),
-        concepto: '',
-        costePorCuota: '',
-        numeroCuotas: 1,
-        importeTotal: '',
-        notas: '',
-      }),
-    },
-    isEditing: {
-      type: Boolean,
-      default: false,
-    },
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false,
   },
-
-  emits: ['update:modelValue', 'saved', 'close'],
-
-  setup(props, { emit }) {
-    const form = ref(null);
-    const formValid = ref(false);
-    const propiedades = ref([]);
-    const menuFecha = ref(false);
-    const picker = ref(null);
-
-    const tiposGasto = [
-      'Comunidad',
-      'IBI',
-      'Seguro',
-      'Luz',
-      'Agua',
-      'Gas',
-      'Reparación',
-      'Mantenimiento',
-      'Otros',
-    ];
-
-    // Computed properties
-    const dialog = computed({
-      get: () => props.modelValue,
-      set: (value) => emit('update:modelValue', value),
-    });
-
-    const fechaFormateada = computed(() => {
-      return props.editedItem.fecha ? formatDate(props.editedItem.fecha) : '';
-    });
-
-    const costePorCuota = computed({
-      get: () => formatPrecio(props.editedItem.costePorCuota || ''),
-      set: (value) => {
-        props.editedItem.costePorCuota = value;
-        calcularImporteTotal();
-      },
-    });
-
-    const importeTotal = computed({
-      get: () => formatPrecio(props.editedItem.importeTotal || ''),
-      set: (value) => {
-        props.editedItem.importeTotal = value;
-      },
-    });
-
-    // Watch for dialog changes
-    watch(
-      () => props.modelValue,
-      async (newValue) => {
-        if (newValue) {
-          await cargarPropiedades();
-        }
-      }
-    );
-
-    // Methods
-    const cargarPropiedades = async () => {
-      try {
-        propiedades.value = await propiedadService.loadPropiedadesActivas();
-      } catch (error) {
-        console.error('Error al cargar propiedades:', error);
-      }
-    };
-
-    const guardarFecha = () => {
-      menuFecha.value = false;
-      picker.value = null;
-    };
-
-    const calcularImporteTotal = () => {
-      const coste = parseFloat(props.editedItem.costePorCuota?.toString().replace(',', '.') || 0);
-      const numCuotas = parseInt(props.editedItem.numeroCuotas || 1);
-
-      if (!isNaN(coste) && !isNaN(numCuotas)) {
-        props.editedItem.importeTotal = (coste * numCuotas).toFixed(2).replace('.', ',');
-      }
-    };
-
-    const cerrarDialogo = () => {
-      dialog.value = false;
-      emit('close');
-    };
-
-    const guardarGasto = async () => {
-      if (form.value.validate()) {
-        try {
-          const userId = auth.currentUser?.uid;
-
-          if (!userId) {
-            console.error('Usuario no autenticado');
-            return;
-          }
-
-          // Preparar datos del gasto con el formato adecuado
-          const gastoData = {
-            ...props.editedItem,
-            costePorCuota: props.editedItem.costePorCuota.toString().replace(',', '.'),
-            importeTotal: props.editedItem.importeTotal.toString().replace(',', '.'),
-            fecha: props.editedItem.fecha || new Date().toISOString().substr(0, 10),
-            createdAt: props.isEditing ? props.editedItem.createdAt : new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          let result;
-          if (props.isEditing) {
-            // Actualizar gasto existente
-            const gastoId = props.editedItem.id;
-            result = await gastoService.updateGasto(gastoId, gastoData, userId);
-          } else {
-            // Crear nuevo gasto
-            result = await gastoService.createGasto(gastoData, userId);
-          }
-
-          if (result) {
-            cerrarDialogo();
-            emit('saved', result);
-          }
-        } catch (error) {
-          console.error('Error al guardar el gasto:', error);
-        }
-      }
-    };
-
-    return {
-      form,
-      formValid,
-      dialog,
-      propiedades,
-      tiposGasto,
-      menuFecha,
-      picker,
-      fechaFormateada,
-      costePorCuota,
-      importeTotal,
-      guardarFecha,
-      calcularImporteTotal,
-      cerrarDialogo,
-      guardarGasto,
-    };
+  editedItem: {
+    type: Object,
+    default: () => ({
+      tipo: '',
+      propiedadId: null,
+      fecha: new Date().toISOString().substr(0, 10),
+      concepto: '',
+      costePorCuota: '',
+      numeroCuotas: 1,
+      importeTotal: '',
+      notas: '',
+    }),
   },
+  isEditing: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const emit = defineEmits(['update:modelValue', 'saved', 'close']);
+
+const { user } = useAuth();
+const form = ref(null);
+const formValid = ref(false);
+const propiedades = ref([]);
+const menuFecha = ref(false);
+
+// Definir los tipos de gasto disponibles
+const tiposGasto = [
+  'Comunidad',
+  'IBI',
+  'Seguro',
+  'Luz',
+  'Agua',
+  'Gas',
+  'Reparación',
+  'Mantenimiento',
+  'Otros',
+];
+
+// Computed properties
+const dialog = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value),
+});
+
+// Función auxiliar para actualizar el diálogo
+const updateDialog = (value) => {
+  emit('update:modelValue', value);
 };
+
+const fechaFormateada = computed(() => {
+  return props.editedItem.fecha ? formatDate(props.editedItem.fecha) : '';
+});
+
+const costePorCuota = computed({
+  get: () => formatPrecio(props.editedItem.costePorCuota || ''),
+  set: (value) => {
+    props.editedItem.costePorCuota = value;
+    calcularImporteTotal();
+  },
+});
+
+const importeTotal = computed({
+  get: () => formatPrecio(props.editedItem.importeTotal || ''),
+  set: (value) => {
+    props.editedItem.importeTotal = value;
+  },
+});
+
+// Métodos
+const cargarPropiedades = async () => {
+  try {
+    propiedades.value = await propiedadService.loadPropiedadesActivas();
+  } catch (error) {
+    console.error('Error al cargar propiedades:', error);
+  }
+};
+
+const guardarFecha = () => {
+  menuFecha.value = false;
+};
+
+const calcularImporteTotal = () => {
+  const coste = parseFloat(props.editedItem.costePorCuota?.toString().replace(',', '.') || 0);
+  const numCuotas = parseInt(props.editedItem.numeroCuotas || 1);
+
+  if (!isNaN(coste) && !isNaN(numCuotas)) {
+    props.editedItem.importeTotal = (coste * numCuotas).toFixed(2).replace('.', ',');
+  }
+};
+
+const cerrarDialogo = () => {
+  dialog.value = false;
+  emit('close');
+};
+
+const guardarGasto = async () => {
+  if (form.value.validate()) {
+    try {
+      const userId = user.value.uid;
+
+      if (!userId) {
+        console.error('Usuario no autenticado');
+        return;
+      }
+
+      // Preparar datos del gasto con el formato adecuado
+      const gastoData = {
+        ...props.editedItem,
+        costePorCuota: props.editedItem.costePorCuota.toString().replace(',', '.'),
+        importeTotal: props.editedItem.importeTotal.toString().replace(',', '.'),
+        fecha: props.editedItem.fecha || new Date().toISOString().substr(0, 10),
+        createdAt: props.isEditing ? props.editedItem.createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      let result;
+      if (props.isEditing) {
+        // Actualizar gasto existente
+        const gastoId = props.editedItem.id;
+        result = await updateGasto(gastoId, gastoData, userId);
+      } else {
+        // Crear nuevo gasto
+        result = await createGasto(gastoData, userId);
+      }
+
+      if (result) {
+        cerrarDialogo();
+        emit('saved', result);
+      }
+    } catch (error) {
+      console.error('Error al guardar el gasto:', error);
+    }
+  }
+};
+
+// Observar cambios en el diálogo para inicializar
+watch(
+  () => props.modelValue,
+  async (newValue) => {
+    if (newValue) {
+      await cargarPropiedades();
+    }
+  }
+);
+
+// Observar cambios en editedItem
+watch(
+  () => props.editedItem,
+  () => {
+    calcularImporteTotal();
+  },
+  { deep: true }
+);
 </script>

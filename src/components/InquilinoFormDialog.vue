@@ -295,4 +295,15 @@ watch(
     if (val) openDialog();
   }
 );
+
+// Observar cambios en el inquilino
+watch(
+  () => props.inquilino,
+  (newInquilino) => {
+    console.log('Inquilino actualizado:', newInquilino);
+    editedItem.value = { ...defaultItem, ...newInquilino };
+    dniOriginal.value = newInquilino.dni || '';
+  },
+  { deep: true, immediate: true }
+);
 </script>

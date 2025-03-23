@@ -173,7 +173,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { auth } from '@/services/firebase';
-import gastoService, { formatCurrency, formatDate } from '@/services/gasto-service';
+import { loadGastosConPropiedades, formatCurrency, formatDate } from '@/services/gasto';
 import propiedadService from '@/services/propiedad-service';
 import GastoFormDialog from '@/components/GastoFormDialog.vue';
 import GastoDeleteDialog from '@/components/GastoDeleteDialog.vue';
@@ -243,7 +243,7 @@ const cargarGastos = async () => {
     const propiedades = await propiedadService.loadPropiedades();
 
     // Cargar gastos con propiedades
-    gastos.value = await gastoService.loadGastosConPropiedades(propiedades);
+    gastos.value = await loadGastosConPropiedades(propiedades);
   } catch (error) {
     console.error('Error al cargar gastos:', error);
   } finally {

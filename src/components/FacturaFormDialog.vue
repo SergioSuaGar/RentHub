@@ -344,4 +344,14 @@ watch(
     if (val) openDialog();
   }
 );
+
+// Observar cambios en la factura
+watch(
+  () => props.factura,
+  (newFactura) => {
+    console.log('Factura actualizada:', newFactura);
+    editedItem.value = { ...defaultItem, ...newFactura };
+  },
+  { deep: true, immediate: true }
+);
 </script>

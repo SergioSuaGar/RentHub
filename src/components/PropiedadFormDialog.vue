@@ -165,4 +165,14 @@ watch(
     if (val) openDialog();
   }
 );
+
+// Observar cambios en la propiedad
+watch(
+  () => props.propiedad,
+  (newPropiedad) => {
+    console.log('Propiedad actualizada:', newPropiedad);
+    editedItem.value = { ...defaultItem, ...newPropiedad };
+  },
+  { deep: true, immediate: true }
+);
 </script>
