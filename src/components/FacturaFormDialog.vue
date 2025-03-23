@@ -121,6 +121,11 @@ import { ref, computed, nextTick, watch } from 'vue';
 import { collection, query, getDocs, where } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
+import {
+  loadPropiedades,
+  loadContratosActivos,
+  calcularImporteProporcional,
+} from '@/services/factura';
 
 const props = defineProps({
   dialog: Boolean,
@@ -172,6 +177,16 @@ const form = ref(null);
 const formValid = ref(false);
 const saving = ref(false);
 
+// Función para cargar las propiedades
+const cargarPropiedades = async () => {
+  try {
+    propiedades.value = await loadPropiedades();
+    console.log('Propiedades cargadas:', propiedades.value);
+  } catch (error) {
+    console.error('Error al cargar propiedades:', error);
+  }
+};
+
 const rules = {
   required: (v) => !!v || 'Este campo es requerido',
   numeric: (v) => {
@@ -205,48 +220,20 @@ const formatImporte = (event) => {
   editedItem.value.importe = value;
 };
 
-const loadContratosActivos = async () => {
+// Cargar contratos activos
+const obtenerContratosActivos = async () => {
   try {
-    const q = query(collection(db, 'contratos'), where('estado', '==', true));
-    const querySnapshot = await getDocs(q);
-    contratosActivos.value = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    contratosActivos.value = await loadContratosActivos();
+    console.log('Contratos activos cargados:', contratosActivos.value);
   } catch (error) {
     console.error('Error al cargar contratos activos:', error);
   }
 };
 
-const calcularImporteProporcional = (precio, fechaInicio, fechaFin) => {
-  if (!precio || !fechaInicio || !fechaFin) return '';
-
-  const inicio = new Date(fechaInicio);
-  const fin = new Date(fechaFin);
-
-  const ultimoDiaMes = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0).getDate();
-
-  const diasOcupados = Math.floor((fin - inicio) / (1000 * 60 * 60 * 24));
-
-  const precioNumerico = parseFloat(precio.toString().replace(',', '.'));
-
-  const precioDiario = precioNumerico / ultimoDiaMes;
-
-  const importeCalculado = precioDiario * diasOcupados;
-
-  let importeFormateado = importeCalculado.toFixed(2).replace('.', ',');
-
-  if (importeFormateado.endsWith(',00')) {
-    importeFormateado = importeFormateado.slice(0, -3);
-  }
-
-  return importeFormateado;
-};
-
 const actualizarImporte = async () => {
   if (editedItem.value.tipo === 'Cuota piso') {
     if (contratosActivos.value.length === 0) {
-      await loadContratosActivos();
+      await obtenerContratosActivos();
     }
 
     if (editedItem.value.propiedadId) {
@@ -277,12 +264,13 @@ const dateInputToIso = (inputDate) => {
 
 const openDialog = async () => {
   editedItem.value = { ...props.factura };
+  await cargarPropiedades();
   nextTick(async () => {
     form.value?.resetValidation();
     if (props.factura?.id) {
       formValid.value = true;
       if (props.factura.tipo === 'Cuota piso') {
-        await loadContratosActivos();
+        await obtenerContratosActivos();
       }
     }
   });

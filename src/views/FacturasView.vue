@@ -210,6 +210,9 @@ import {
   loadFacturas,
   loadPropiedades,
   loadContratosActivos,
+  createFactura,
+  updateFactura,
+  deleteFactura,
   formatCurrency,
   formatDate,
   formatDateShort,
@@ -359,12 +362,31 @@ const handleFacturaSave = async (factura) => {
   try {
     loading.value = true;
 
-    // Si es una nueva factura, se añade al principio
+    let facturaGuardada;
+
+    // Si es una nueva factura
     if (editedIndex.value === -1) {
-      facturas.value.unshift(factura);
+      // Preparar datos para crear
+      const facturaData = {
+        ...factura,
+        createdAt: new Date().toISOString(),
+        createdBy: user.value.uid,
+      };
+
+      // Guardar en Firestore
+      facturaGuardada = await createFactura(facturaData, user.value.uid);
+
+      if (facturaGuardada) {
+        facturas.value.unshift(facturaGuardada);
+      }
     } else {
-      // Si es una edición, se actualiza en el índice correspondiente
-      Object.assign(facturas.value[editedIndex.value], factura);
+      // Es una edición, actualizar en Firestore
+      facturaGuardada = await updateFactura(factura.id, factura, user.value.uid);
+
+      if (facturaGuardada) {
+        // Actualizar en el array local
+        Object.assign(facturas.value[editedIndex.value], facturaGuardada);
+      }
     }
 
     dialog.value = false;
@@ -379,8 +401,15 @@ const deleteItemConfirm = async () => {
   try {
     loading.value = true;
 
-    // Eliminar la factura del array
-    facturas.value.splice(editedIndex.value, 1);
+    const facturaId = facturas.value[editedIndex.value].id;
+
+    // Eliminar la factura de Firestore
+    const eliminada = await deleteFactura(facturaId);
+
+    if (eliminada) {
+      // Eliminar la factura del array
+      facturas.value.splice(editedIndex.value, 1);
+    }
 
     dialogDelete.value = false;
     loading.value = false;
@@ -394,8 +423,13 @@ const handlePagoSave = async (factura) => {
   try {
     loading.value = true;
 
-    // Actualizar la factura en el array
-    Object.assign(facturas.value[editedIndex.value], factura);
+    // Actualizar la factura en Firestore
+    const facturaActualizada = await updateFactura(factura.id, factura, user.value.uid);
+
+    if (facturaActualizada) {
+      // Actualizar la factura en el array
+      Object.assign(facturas.value[editedIndex.value], facturaActualizada);
+    }
 
     dialogPago.value = false;
     loading.value = false;
