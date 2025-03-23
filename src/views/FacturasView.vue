@@ -349,11 +349,44 @@ const confirmDelete = (item) => {
   dialogDelete.value = true;
 };
 
-const toggleEstado = (item) => {
+const toggleEstado = async (item) => {
   if (item.estado === 'pendiente') {
+    // Si está pendiente, abrir diálogo de pago
     editedIndex.value = facturas.value.indexOf(item);
     editedItem.value = { ...item };
     dialogPago.value = true;
+  } else if (item.estado === 'pagada') {
+    // Si está pagada, cambiar a pendiente directamente
+    try {
+      loading.value = true;
+
+      // Preparar los datos de actualización
+      const datosActualizacion = {
+        estado: 'pendiente',
+        // Eliminar campos relacionados con el pago
+        importePagado: '',
+        fechaPago: '',
+        updatedAt: new Date().toISOString(),
+        updatedBy: user.value.uid,
+      };
+
+      // Actualizar en Firestore
+      await setDoc(doc(db, 'facturas', item.id), datosActualizacion, { merge: true });
+
+      // Actualizar en el array local
+      const index = facturas.value.indexOf(item);
+      if (index !== -1) {
+        Object.assign(facturas.value[index], {
+          ...item,
+          ...datosActualizacion,
+        });
+      }
+
+      loading.value = false;
+    } catch (error) {
+      console.error('Error al cambiar estado de factura:', error);
+      loading.value = false;
+    }
   }
 };
 
@@ -423,12 +456,22 @@ const handlePagoSave = async (factura) => {
   try {
     loading.value = true;
 
-    // Actualizar la factura en Firestore
-    const facturaActualizada = await updateFactura(factura.id, factura, user.value.uid);
+    if (!factura) {
+      console.error('Error: No se ha recibido la factura actualizada');
+      loading.value = false;
+      return;
+    }
 
-    if (facturaActualizada) {
-      // Actualizar la factura en el array
-      Object.assign(facturas.value[editedIndex.value], facturaActualizada);
+    // Ya tenemos la factura actualizada del componente hijo
+    // Actualizar la factura en el array si tenemos el índice
+    if (editedIndex.value !== -1 && facturas.value[editedIndex.value]) {
+      Object.assign(facturas.value[editedIndex.value], factura);
+    } else {
+      // En caso de que no tengamos el índice, buscar la factura por ID
+      const index = facturas.value.findIndex((f) => f.id === factura.id);
+      if (index !== -1) {
+        Object.assign(facturas.value[index], factura);
+      }
     }
 
     dialogPago.value = false;

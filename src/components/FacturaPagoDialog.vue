@@ -168,18 +168,27 @@ const registrarPago = async () => {
 
   try {
     saving.value = true;
-    await setDoc(
-      doc(db, 'facturas', props.factura.id),
-      {
-        estado: 'pagada',
-        importePagado: pagoData.value.importePagado.replace(',', '.'),
-        fechaPago: new Date(pagoData.value.fechaPago).toISOString(),
-        updatedAt: new Date().toISOString(),
-        updatedBy: user.value.uid,
-      },
-      { merge: true }
-    );
-    emit('save');
+
+    // Datos a actualizar
+    const datosActualizacion = {
+      estado: 'pagada',
+      importePagado: pagoData.value.importePagado.replace(',', '.'),
+      fechaPago: new Date(pagoData.value.fechaPago).toISOString(),
+      updatedAt: new Date().toISOString(),
+      updatedBy: user.value.uid,
+    };
+
+    // Actualizar en Firestore
+    await setDoc(doc(db, 'facturas', props.factura.id), datosActualizacion, { merge: true });
+
+    // Crear objeto factura actualizado para pasar al evento
+    const facturaActualizada = {
+      ...props.factura,
+      ...datosActualizacion,
+    };
+
+    // Emitir evento con la factura actualizada
+    emit('save', facturaActualizada);
     closeDialog();
   } catch (error) {
     console.error('Error al registrar pago:', error);
