@@ -29,6 +29,7 @@
           show-expand
           item-value="id"
           expand-on-click
+          :sort-by="sortBy"
         >
           <!-- Barra de búsqueda -->
           <template #top>
@@ -57,6 +58,23 @@
           <!-- Columna de importe pagado -->
           <template #[`item.importePagado`]="{ item }">
             {{ item.estado === 'pagada' ? formatCurrency(item.importePagado) : '-' }}
+          </template>
+
+          <!-- Columna de saldo -->
+          <template #[`item.saldo`]="{ item }">
+            <span v-if="item.estado === 'pagada'">
+              <span v-if="calcularSaldo(item) === 0">-</span>
+              <span v-else :class="getSaldoClass(item)">
+                {{ formatCurrency(calcularSaldo(item)) }}
+              </span>
+            </span>
+            <span v-else>-</span>
+          </template>
+          <template #[`footer.saldo`]>
+            <span v-if="totalSaldo === 0">-</span>
+            <span v-else :class="totalSaldo > 0 ? 'text-success' : 'text-error'">
+              {{ formatCurrency(totalSaldo) }}
+            </span>
           </template>
 
           <!-- Columna de fechas -->
@@ -420,6 +438,7 @@ const totalItems = ref(0);
 const facturas = ref([]);
 const propiedades = ref([]);
 const contratosActivos = ref([]);
+const sortBy = ref([{ key: 'fechaFin', order: 'desc' }]);
 
 // Tipos de factura
 const tiposFactura = ['Luz', 'Agua', 'Agua caliente', 'Cuota piso'];
@@ -461,8 +480,14 @@ const headers = [
   { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
   { title: 'Importe', key: 'importe', align: 'end', sortable: true },
   { title: 'Pagado', key: 'importePagado', align: 'end', sortable: true },
+  { title: 'Saldo', key: 'saldo', align: 'end', sortable: true },
   { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
-  { title: 'Fecha Fin', key: 'fechaFin', align: 'start', sortable: true },
+  {
+    title: 'Fecha Fin',
+    key: 'fechaFin',
+    align: 'start',
+    sortable: true,
+  },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
   { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
 ];
@@ -499,7 +524,26 @@ const formTitle = computed(() => {
 // Formatear moneda
 const formatCurrency = (value) => {
   if (!value) return '0 €';
-  return `${value} €`;
+
+  // Convertir a número si es string
+  const numValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
+
+  // Formatear el número con el signo adecuado
+  const absValue = Math.abs(numValue);
+  const signo = numValue < 0 ? '-' : '';
+
+  // Convertir a string con coma para decimales
+  let formattedValue = absValue.toString();
+  if (formattedValue.includes('.')) {
+    // Si tiene decimales, asegurar 2 decimales y usar coma
+    formattedValue = absValue.toFixed(2).replace('.', ',');
+    // Si termina en ,00 quitar los decimales
+    if (formattedValue.endsWith(',00')) {
+      formattedValue = formattedValue.substring(0, formattedValue.length - 3);
+    }
+  }
+
+  return `${signo}${formattedValue} €`;
 };
 
 // Formatear fecha
@@ -969,6 +1013,23 @@ const toggleEstado = async (item) => {
   } catch (error) {
     console.error('Error al cambiar estado:', error);
   }
+};
+
+// Calcular saldo
+const calcularSaldo = (item) => {
+  if (item.estado !== 'pagada' || !item.importePagado) return 0;
+
+  const importePagado = parseFloat(item.importePagado.toString().replace(',', '.'));
+  const importe = parseFloat(item.importe.toString().replace(',', '.'));
+
+  return importePagado - importe;
+};
+
+// Obtener clase CSS para el saldo
+const getSaldoClass = (item) => {
+  const saldo = calcularSaldo(item);
+  if (saldo === 0) return '';
+  return saldo > 0 ? 'text-success' : 'text-error';
 };
 
 // Cargar datos iniciales
