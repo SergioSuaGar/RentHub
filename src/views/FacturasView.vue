@@ -193,6 +193,17 @@
           <v-form ref="form" v-model="formValid" @submit.prevent="handleSubmit" lazy-validation>
             <v-container>
               <v-row>
+                <v-col cols="12" v-if="errorMensaje">
+                  <v-alert
+                    type="error"
+                    variant="tonal"
+                    density="compact"
+                    closable
+                    @click:close="errorMensaje = ''"
+                  >
+                    {{ errorMensaje }}
+                  </v-alert>
+                </v-col>
                 <v-col cols="12" sm="6">
                   <v-select
                     v-model="editedItem.tipo"
@@ -477,6 +488,9 @@ const rules = {
   },
 };
 
+// Mensaje de error para facturas duplicadas
+const errorMensaje = ref('');
+
 // Título del formulario
 const formTitle = computed(() => {
   return editedIndex.value === -1 ? 'Nueva Factura' : 'Editar Factura';
@@ -709,6 +723,33 @@ const dateInputToIso = (inputDate) => {
   return new Date(inputDate).toISOString();
 };
 
+// Verificar factura duplicada
+const verificarFacturaDuplicada = (tipo, propiedadId, fechaFin) => {
+  if (!tipo || !propiedadId || !fechaFin) return false;
+
+  // Obtener el mes y año de la fecha fin
+  const fecha = new Date(fechaFin);
+  const mes = fecha.getMonth();
+  const año = fecha.getFullYear();
+
+  // Buscar facturas del mismo tipo, propiedad y mes
+  return facturas.value.some((factura) => {
+    // Si estamos editando, ignorar la factura actual
+    if (editedIndex.value > -1 && factura.id === editedItem.value.id) return false;
+
+    // Comprobar si coincide tipo y propiedad
+    const mismoPropiedadYTipo = factura.tipo === tipo && factura.propiedadId === propiedadId;
+
+    if (mismoPropiedadYTipo) {
+      // Comprobar si es del mismo mes
+      const fechaFinFactura = new Date(factura.fechaFin);
+      return fechaFinFactura.getMonth() === mes && fechaFinFactura.getFullYear() === año;
+    }
+
+    return false;
+  });
+};
+
 // Abrir diálogo
 const openDialog = (item) => {
   editedIndex.value = item ? facturas.value.indexOf(item) : -1;
@@ -731,6 +772,7 @@ const closeDialog = () => {
   dialog.value = false;
   editedIndex.value = -1;
   editedItem.value = { ...defaultItem };
+  errorMensaje.value = '';
   nextTick(() => {
     form.value?.reset();
     formValid.value = false;
@@ -741,10 +783,25 @@ const closeDialog = () => {
 const handleSubmit = async () => {
   if (saving.value) return;
 
+  // Resetear mensaje de error
+  errorMensaje.value = '';
+
   const isValid = await form.value?.validate();
 
   if (!isValid) {
     formValid.value = false;
+    return;
+  }
+
+  // Verificar si ya existe una factura similar
+  const hayDuplicado = verificarFacturaDuplicada(
+    editedItem.value.tipo,
+    editedItem.value.propiedadId,
+    editedItem.value.fechaFin
+  );
+
+  if (hayDuplicado) {
+    errorMensaje.value = `Ya existe una factura de ${editedItem.value.tipo} para esta propiedad en el mismo mes`;
     return;
   }
 
