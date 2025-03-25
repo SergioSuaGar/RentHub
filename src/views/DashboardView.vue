@@ -50,7 +50,7 @@
         <v-row>
           <!-- Resumen de facturas -->
           <v-col cols="12" md="4" lg="4">
-            <v-card class="cursor-pointer" @click="router.push('/facturas')">
+            <v-card>
               <v-card-item>
                 <v-card-title>
                   <v-icon icon="mdi-cash" class="me-2" color="success"></v-icon>
@@ -97,14 +97,7 @@
 
           <!-- Saldo Total -->
           <v-col cols="12" md="4" lg="4">
-            <v-card
-              class="cursor-pointer"
-              @click="
-                router.push(
-                  `/facturas${propiedadSeleccionada ? '?search=' + encodeURIComponent(propiedadSeleccionada.nombre) : ''}`
-                )
-              "
-            >
+            <v-card>
               <v-card-item>
                 <v-card-title>
                   <v-icon
