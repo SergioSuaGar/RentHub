@@ -29,6 +29,7 @@
           show-expand
           item-value="id"
           expand-on-click
+          :sort-by="sortBy"
         >
           <!-- Barra de búsqueda -->
           <template #top>
@@ -57,6 +58,20 @@
           <!-- Columna de importe pagado -->
           <template #[`item.importePagado`]="{ item }">
             {{ item.estado === 'pagada' ? formatCurrency(item.importePagado) : '-' }}
+          </template>
+
+          <!-- Columna de saldo -->
+          <template #[`item.saldo`]="{ item }">
+            <span v-if="calcularSaldo(item) === 0">-</span>
+            <span v-else :class="getSaldoClass(item)">
+              {{ formatCurrency(calcularSaldo(item)) }}
+            </span>
+          </template>
+          <template #[`footer.saldo`]>
+            <span v-if="totalSaldo === 0">-</span>
+            <span v-else :class="totalSaldo > 0 ? 'text-success' : 'text-error'">
+              {{ formatCurrency(totalSaldo) }}
+            </span>
           </template>
 
           <!-- Columna de fechas -->
@@ -193,6 +208,17 @@
           <v-form ref="form" v-model="formValid" @submit.prevent="handleSubmit" lazy-validation>
             <v-container>
               <v-row>
+                <v-col cols="12" v-if="errorMensaje">
+                  <v-alert
+                    type="error"
+                    variant="tonal"
+                    density="compact"
+                    closable
+                    @click:close="errorMensaje = ''"
+                  >
+                    {{ errorMensaje }}
+                  </v-alert>
+                </v-col>
                 <v-col cols="12" sm="6">
                   <v-select
                     v-model="editedItem.tipo"
@@ -264,7 +290,7 @@
                     label="Importe *"
                     :rules="[rules.required, rules.numeric]"
                     required
-                    :hint="'Introduce el importe (usar coma para decimales)'"
+                    :hint="'Introduce el importe (usar punto para decimales)'"
                     persistent-hint
                     @input="formatImporte"
                     validate-on-blur
@@ -344,7 +370,7 @@
                     label="Importe Pagado *"
                     :rules="[rules.required, rules.numeric]"
                     required
-                    :hint="'Introduce el importe pagado (usar coma para decimales)'"
+                    :hint="'Introduce el importe pagado (usar punto para decimales)'"
                     persistent-hint
                     @input="formatImportePagado"
                     validate-on-blur
@@ -409,6 +435,7 @@ const totalItems = ref(0);
 const facturas = ref([]);
 const propiedades = ref([]);
 const contratosActivos = ref([]);
+const sortBy = ref([{ key: 'fechaFin', order: 'desc' }]);
 
 // Tipos de factura
 const tiposFactura = ['Luz', 'Agua', 'Agua caliente', 'Cuota piso'];
@@ -450,8 +477,14 @@ const headers = [
   { title: 'Propiedad', key: 'propiedadNombre', align: 'start', sortable: true },
   { title: 'Importe', key: 'importe', align: 'end', sortable: true },
   { title: 'Pagado', key: 'importePagado', align: 'end', sortable: true },
+  { title: 'Saldo', key: 'saldo', align: 'end', sortable: true },
   { title: 'Fecha Inicio', key: 'fechaInicio', align: 'start', sortable: true },
-  { title: 'Fecha Fin', key: 'fechaFin', align: 'start', sortable: true },
+  {
+    title: 'Fecha Fin',
+    key: 'fechaFin',
+    align: 'start',
+    sortable: true,
+  },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' },
   { title: '', key: 'data-table-expand', sortable: false, align: 'center', width: '50px' },
 ];
@@ -465,8 +498,8 @@ const rules = {
   required: (v) => !!v || 'Este campo es requerido',
   numeric: (v) => {
     if (!v) return true;
-    const pattern = /^\d+(?:,\d{1,2})?$/;
-    return pattern.test(v) || 'Formato inválido. Use coma para decimales (ej: 123,45)';
+    const pattern = /^\d+(?:\.\d{1,2})?$/;
+    return pattern.test(v) || 'Formato inválido. Use punto para decimales (ej: 123.45)';
   },
   fechaFinValida: (v) => {
     if (!v || !editedItem.value.fechaInicio) return true;
@@ -477,6 +510,9 @@ const rules = {
   },
 };
 
+// Mensaje de error para facturas duplicadas
+const errorMensaje = ref('');
+
 // Título del formulario
 const formTitle = computed(() => {
   return editedIndex.value === -1 ? 'Nueva Factura' : 'Editar Factura';
@@ -485,7 +521,26 @@ const formTitle = computed(() => {
 // Formatear moneda
 const formatCurrency = (value) => {
   if (!value) return '0 €';
-  return `${value} €`;
+
+  // Convertir a número si es string
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+
+  // Formatear el número con el signo adecuado
+  const absValue = Math.abs(numValue);
+  const signo = numValue < 0 ? '-' : '';
+
+  // Convertir a string con punto para decimales
+  let formattedValue = absValue.toString();
+  if (formattedValue.includes('.')) {
+    // Si tiene decimales, asegurar 2 decimales y usar punto
+    formattedValue = absValue.toFixed(2);
+    // Si termina en .00 quitar los decimales
+    if (formattedValue.endsWith('.00')) {
+      formattedValue = formattedValue.substring(0, formattedValue.length - 3);
+    }
+  }
+
+  return `${signo}${formattedValue} €`;
 };
 
 // Formatear fecha
@@ -549,16 +604,16 @@ const formatDateShort = (timestamp) => {
 // Formatear importe
 const formatImporte = (event) => {
   let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
+  // Permitir solo números y un punto
+  value = value.replace(/[^\d.]/g, '');
+  // Asegurar solo un punto
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   // Limitar a dos decimales
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
   editedItem.value.importe = value;
 };
@@ -574,16 +629,16 @@ const pagoData = ref({
 // Formatear importe pagado
 const formatImportePagado = (event) => {
   let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
+  // Permitir solo números y un punto
+  value = value.replace(/[^\d.]/g, '');
+  // Asegurar solo un punto
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   // Limitar a dos decimales
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
   pagoData.value.importePagado = value;
 };
@@ -616,7 +671,7 @@ const calcularImporteProporcional = (precio, fechaInicio, fechaFin) => {
   const diasOcupados = Math.floor((fin - inicio) / (1000 * 60 * 60 * 24));
 
   // Convertir el precio a número
-  const precioNumerico = parseFloat(precio.toString().replace(',', '.'));
+  const precioNumerico = parseFloat(precio);
 
   // Calcular el precio por día basado en los días reales del mes
   const precioDiario = precioNumerico / ultimoDiaMes;
@@ -625,10 +680,10 @@ const calcularImporteProporcional = (precio, fechaInicio, fechaFin) => {
   const importeCalculado = precioDiario * diasOcupados;
 
   // Redondear a 2 decimales y formatear
-  let importeFormateado = importeCalculado.toFixed(2).replace('.', ',');
+  let importeFormateado = importeCalculado.toFixed(2);
 
   // Eliminar decimales si son ceros
-  if (importeFormateado.endsWith(',00')) {
+  if (importeFormateado.endsWith('.00')) {
     importeFormateado = importeFormateado.slice(0, -3);
   }
 
@@ -709,6 +764,33 @@ const dateInputToIso = (inputDate) => {
   return new Date(inputDate).toISOString();
 };
 
+// Verificar factura duplicada
+const verificarFacturaDuplicada = (tipo, propiedadId, fechaFin) => {
+  if (!tipo || !propiedadId || !fechaFin) return false;
+
+  // Obtener el mes y año de la fecha fin
+  const fecha = new Date(fechaFin);
+  const mes = fecha.getMonth();
+  const año = fecha.getFullYear();
+
+  // Buscar facturas del mismo tipo, propiedad y mes
+  return facturas.value.some((factura) => {
+    // Si estamos editando, ignorar la factura actual
+    if (editedIndex.value > -1 && factura.id === editedItem.value.id) return false;
+
+    // Comprobar si coincide tipo y propiedad
+    const mismoPropiedadYTipo = factura.tipo === tipo && factura.propiedadId === propiedadId;
+
+    if (mismoPropiedadYTipo) {
+      // Comprobar si es del mismo mes
+      const fechaFinFactura = new Date(factura.fechaFin);
+      return fechaFinFactura.getMonth() === mes && fechaFinFactura.getFullYear() === año;
+    }
+
+    return false;
+  });
+};
+
 // Abrir diálogo
 const openDialog = (item) => {
   editedIndex.value = item ? facturas.value.indexOf(item) : -1;
@@ -731,6 +813,7 @@ const closeDialog = () => {
   dialog.value = false;
   editedIndex.value = -1;
   editedItem.value = { ...defaultItem };
+  errorMensaje.value = '';
   nextTick(() => {
     form.value?.reset();
     formValid.value = false;
@@ -741,10 +824,25 @@ const closeDialog = () => {
 const handleSubmit = async () => {
   if (saving.value) return;
 
+  // Resetear mensaje de error
+  errorMensaje.value = '';
+
   const isValid = await form.value?.validate();
 
   if (!isValid) {
     formValid.value = false;
+    return;
+  }
+
+  // Verificar si ya existe una factura similar
+  const hayDuplicado = verificarFacturaDuplicada(
+    editedItem.value.tipo,
+    editedItem.value.propiedadId,
+    editedItem.value.fechaFin
+  );
+
+  if (hayDuplicado) {
+    errorMensaje.value = `Ya existe una factura de ${editedItem.value.tipo} para esta propiedad en el mismo mes`;
     return;
   }
 
@@ -824,7 +922,7 @@ const updatePropiedadNombre = (propiedadId) => {
 const openDialogPago = (item) => {
   editedItem.value = { ...item };
   pagoData.value = {
-    importePagado: item.importe.toString().replace('.', ','),
+    importePagado: item.importe,
     fechaPago: new Date().toISOString().split('T')[0],
   };
   dialogPago.value = true;
@@ -872,7 +970,7 @@ const registrarPago = async () => {
       doc(db, 'facturas', editedItem.value.id),
       {
         estado: 'pagada',
-        importePagado: pagoData.value.importePagado.replace(',', '.'),
+        importePagado: pagoData.value.importePagado,
         fechaPago: new Date(pagoData.value.fechaPago).toISOString(),
         updatedAt: new Date().toISOString(),
         updatedBy: user.value.uid,
@@ -913,6 +1011,40 @@ const toggleEstado = async (item) => {
     console.error('Error al cambiar estado:', error);
   }
 };
+
+// Calcular saldo
+const calcularSaldo = (item) => {
+  if (item.estado === 'pendiente') {
+    return -parseFloat(item.importe);
+  }
+
+  if (item.estado === 'pagada' && item.importePagado) {
+    const importePagado = parseFloat(item.importePagado);
+    const importe = parseFloat(item.importe);
+    return importePagado - importe;
+  }
+
+  return 0;
+};
+
+// Obtener clase CSS para el saldo
+const getSaldoClass = (item) => {
+  const saldo = calcularSaldo(item);
+  if (saldo === 0) return '';
+  return saldo > 0 ? 'text-success' : 'text-error';
+};
+
+// Total Saldo
+const totalSaldo = computed(() => {
+  return facturas.value.reduce((total, factura) => {
+    if (factura.estado === 'pagada' && factura.importePagado) {
+      const importePagado = parseFloat(factura.importePagado);
+      const importe = parseFloat(factura.importe);
+      return total + (importePagado - importe);
+    }
+    return total;
+  }, 0);
+});
 
 // Cargar datos iniciales
 onMounted(async () => {

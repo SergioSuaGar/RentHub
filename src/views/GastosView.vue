@@ -228,7 +228,7 @@
                     label="Coste por Cuota *"
                     :rules="[rules.required, rules.numeric]"
                     required
-                    :hint="'Introduce el coste por cuota (usar coma para decimales)'"
+                    :hint="'Introduce el coste por cuota (usar punto para decimales)'"
                     persistent-hint
                     @input="formatCosteCuota"
                     validate-on-blur
@@ -384,8 +384,8 @@ const rules = {
   required: (v) => !!v || 'Este campo es requerido',
   numeric: (v) => {
     if (!v) return true;
-    const pattern = /^\d+(?:,\d{1,2})?$/;
-    return pattern.test(v) || 'Formato inválido. Use coma para decimales (ej: 123,45)';
+    const pattern = /^\d+(?:\.\d{1,2})?$/;
+    return pattern.test(v) || 'Formato inválido. Use punto para decimales (ej: 123.45)';
   },
   entero: (v) => {
     if (!v) return true;
@@ -402,21 +402,21 @@ const formTitle = computed(() => {
 const formatCurrency = (value) => {
   if (!value) return '0 €';
 
-  // Si el valor ya tiene una coma, lo procesamos
-  if (typeof value === 'string' && value.includes(',')) {
-    // Si termina en ,00 eliminamos los decimales
-    if (value.endsWith(',00')) {
+  // Si el valor ya tiene un punto, lo procesamos
+  if (typeof value === 'string' && value.includes('.')) {
+    // Si termina en .00 eliminamos los decimales
+    if (value.endsWith('.00')) {
       return `${value.slice(0, -3)} €`;
     }
     return `${value} €`;
   }
 
-  // Si es un número o string sin coma
-  const numero = parseFloat(value.toString().replace(',', '.'));
+  // Si es un número o string sin punto
+  const numero = parseFloat(value.toString());
   if (Number.isInteger(numero)) {
     return `${numero} €`;
   }
-  return `${numero.toFixed(2).replace('.', ',')} €`;
+  return `${numero.toFixed(2)} €`;
 };
 
 // Formatear fecha
@@ -480,16 +480,16 @@ const formatDateShort = (timestamp) => {
 // Formatear coste cuota
 const formatCosteCuota = (event) => {
   let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
+  // Permitir solo números y un punto
+  value = value.replace(/[^\d.]/g, '');
+  // Asegurar solo un punto
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   // Limitar a dos decimales
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
   editedItem.value.costeCuota = value;
   calcularImporteTotal();
@@ -498,16 +498,16 @@ const formatCosteCuota = (event) => {
 // Formatear importe total
 const formatImporteTotal = (event) => {
   let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
+  // Permitir solo números y un punto
+  value = value.replace(/[^\d.]/g, '');
+  // Asegurar solo un punto
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   // Limitar a dos decimales
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
   editedItem.value.importeTotal = value;
 };
@@ -515,10 +515,10 @@ const formatImporteTotal = (event) => {
 // Calcular importe total
 const calcularImporteTotal = () => {
   if (editedItem.value.costeCuota && editedItem.value.cantidadCuotas) {
-    const coste = parseFloat(editedItem.value.costeCuota.replace(',', '.'));
+    const coste = parseFloat(editedItem.value.costeCuota);
     const cantidad = parseInt(editedItem.value.cantidadCuotas);
     if (!isNaN(coste) && !isNaN(cantidad)) {
-      const total = (coste * cantidad).toFixed(2).replace('.', ',');
+      const total = (coste * cantidad).toFixed(2);
       editedItem.value.importeTotal = total;
     }
   }
