@@ -423,8 +423,10 @@ import { collection, query, getDocs, doc, setDoc, deleteDoc, where } from 'fireb
 import { db } from '@/services/firebase';
 import { useAuth } from '@/composables/useAuth';
 import { sortProperties } from '@/config/propertyOrder';
+import { useRoute } from 'vue-router';
 
 const { user } = useAuth();
+const route = useRoute();
 
 // Variables para la tabla
 const loading = ref(false);
@@ -435,7 +437,16 @@ const totalItems = ref(0);
 const facturas = ref([]);
 const propiedades = ref([]);
 const contratosActivos = ref([]);
-const sortBy = ref([{ key: 'fechaFin', order: 'desc' }]);
+
+// Inicializar el ordenamiento según el parámetro fromWidget
+const sortBy = ref(
+  route.query.fromWidget === 'true'
+    ? [
+        { key: 'estado', order: 'desc' },
+        { key: 'fechaFin', order: 'desc' },
+      ]
+    : [{ key: 'fechaFin', order: 'desc' }]
+);
 
 // Tipos de factura
 const tiposFactura = ['Luz', 'Agua', 'Agua caliente', 'Cuota piso'];
@@ -470,7 +481,7 @@ const headers = [
     title: 'Estado',
     key: 'estado',
     align: 'center',
-    sortable: false,
+    sortable: true,
     headerProps: { align: 'center' },
   },
   { title: 'Tipo', key: 'tipo', align: 'start', sortable: true },
@@ -744,6 +755,7 @@ const loadFacturas = async () => {
         propiedadNombre: propiedad ? propiedad.nombre : '',
       };
     });
+
     totalItems.value = facturas.value.length;
   } catch (error) {
     console.error('Error al cargar facturas:', error);

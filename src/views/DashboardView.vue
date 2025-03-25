@@ -44,7 +44,7 @@
 
           <!-- Facturas pendientes -->
           <v-col cols="12" md="6" lg="6">
-            <v-card class="cursor-pointer" @click="router.push('/facturas')">
+            <v-card class="cursor-pointer" @click="router.push('/facturas?fromWidget=true')">
               <v-card-item>
                 <v-card-title>
                   <v-icon icon="mdi-file-document-alert" class="me-2" color="warning"></v-icon>
