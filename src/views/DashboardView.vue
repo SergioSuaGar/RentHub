@@ -74,7 +74,14 @@
 
           <!-- Facturas pendientes -->
           <v-col cols="12" md="4" lg="4">
-            <v-card class="cursor-pointer" @click="router.push('/facturas?fromWidget=true')">
+            <v-card
+              class="cursor-pointer"
+              @click="
+                router.push(
+                  `/facturas?fromWidget=true${propiedadSeleccionada ? '&search=' + encodeURIComponent(propiedadSeleccionada.nombre) : ''}`
+                )
+              "
+            >
               <v-card-item>
                 <v-card-title>
                   <v-icon icon="mdi-file-document-alert" class="me-2" color="warning"></v-icon>
@@ -90,7 +97,14 @@
 
           <!-- Saldo Total -->
           <v-col cols="12" md="4" lg="4">
-            <v-card class="cursor-pointer" @click="router.push('/facturas')">
+            <v-card
+              class="cursor-pointer"
+              @click="
+                router.push(
+                  `/facturas${propiedadSeleccionada ? '?search=' + encodeURIComponent(propiedadSeleccionada.nombre) : ''}`
+                )
+              "
+            >
               <v-card-item>
                 <v-card-title>
                   <v-icon
