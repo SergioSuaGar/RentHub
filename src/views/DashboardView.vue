@@ -7,6 +7,7 @@
           v-model="propiedadSeleccionada"
           :items="propiedadesActivas"
           item-value="id"
+          item-title="nombre"
           label="Propiedad"
           clearable
           hide-details
@@ -15,34 +16,6 @@
         >
           <template v-slot:item="{ props, item }">
             <v-list-item v-bind="props" :title="null">
-              <v-list-item-title>{{ item.raw.nombre }}</v-list-item-title>
-              <template v-slot:append>
-                <v-icon
-                  v-if="tieneFacturasPendientes(item.raw.id)"
-                  icon="mdi-file-document-alert"
-                  color="warning"
-                  size="small"
-                  class="ms-2"
-                ></v-icon>
-                <v-icon
-                  v-if="getSaldoPropiedad(item.raw.id) > 0"
-                  icon="mdi-cash-plus"
-                  color="success"
-                  size="small"
-                  class="ms-2"
-                ></v-icon>
-                <v-icon
-                  v-if="getSaldoPropiedad(item.raw.id) < 0"
-                  icon="mdi-cash-minus"
-                  color="error"
-                  size="small"
-                  class="ms-2"
-                ></v-icon>
-              </template>
-            </v-list-item>
-          </template>
-          <template v-slot:selection="{ item }">
-            <v-list-item :title="null">
               <v-list-item-title>{{ item.raw.nombre }}</v-list-item-title>
               <template v-slot:append>
                 <v-icon
