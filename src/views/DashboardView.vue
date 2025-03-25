@@ -48,7 +48,7 @@
               <v-card-item>
                 <v-card-title>
                   <v-icon icon="mdi-file-document-alert" class="me-2" color="warning"></v-icon>
-                  Pendientes
+                  Facturas Pendientes
                 </v-card-title>
                 <v-card-subtitle class="mt-2">
                   <span class="text-h4">{{ facturasPendientes.length }}</span>
@@ -211,6 +211,17 @@
               <v-form ref="form" v-model="formValid" @submit.prevent="handleSubmit" lazy-validation>
                 <v-container>
                   <v-row>
+                    <v-col cols="12" v-if="errorMensaje">
+                      <v-alert
+                        type="error"
+                        variant="tonal"
+                        density="compact"
+                        closable
+                        @click:close="errorMensaje = ''"
+                      >
+                        {{ errorMensaje }}
+                      </v-alert>
+                    </v-col>
                     <v-col cols="12" sm="6">
                       <v-select
                         v-model="editedItem.tipo"
@@ -242,7 +253,7 @@
                         label="Importe *"
                         :rules="[rules.required, rules.numeric]"
                         required
-                        :hint="'Introduce el importe (usar coma para decimales)'"
+                        :hint="'Introduce el importe (usar punto para decimales)'"
                         persistent-hint
                         @input="formatImporte"
                         validate-on-blur
@@ -339,6 +350,8 @@ const gastosPorTipo = ref({
   Otros: 0,
 });
 const añoActual = new Date().getFullYear();
+const todasLasFacturas = ref([]);
+const errorMensaje = ref('');
 
 // Variables para el formulario
 const dialog = ref(false);
@@ -348,7 +361,7 @@ const saving = ref(false);
 const registrarOtro = ref(false);
 
 // Tipos de factura
-const tiposFactura = ['Luz', 'Agua', 'Agua caliente'];
+const tiposFactura = ['Luz', 'Agua', 'Agua caliente', 'Cuota piso'];
 
 // Item editado
 const editedItem = ref({
@@ -376,8 +389,8 @@ const rules = {
   required: (v) => !!v || 'Este campo es requerido',
   numeric: (v) => {
     if (!v) return true;
-    const pattern = /^\d+(?:,\d{1,2})?$/;
-    return pattern.test(v) || 'Formato inválido. Use coma para decimales (ej: 123,45)';
+    const pattern = /^\d+(?:\.\d{1,2})?$/;
+    return pattern.test(v) || 'Formato inválido. Use punto para decimales (ej: 123.45)';
   },
   fechaFinValida: (v) => {
     if (!v || !editedItem.value.fechaInicio) return true;
@@ -390,20 +403,20 @@ const rules = {
 
 // Formatear moneda
 const formatCurrency = (value) => {
-  if (!value) return '0,00 €';
-  return `${value.toString().replace('.', ',')} €`;
+  if (!value) return '0.00 €';
+  return `${value.toString().replace(',', '.')} €`;
 };
 
 // Formatear importe
 const formatImporte = (event) => {
   let value = event.target.value;
-  value = value.replace(/[^\d,]/g, '');
-  const parts = value.split(',');
+  value = value.replace(/[^\d.]/g, '');
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
   editedItem.value.importe = value;
 };
@@ -480,27 +493,31 @@ const loadFacturas = async (propiedadId = null) => {
     let cobradoMes = 0;
     let esperadoMes = 0;
 
-    facturasPendientes.value = facturasSnapshot.docs
-      .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter((factura) => {
-        const fechaFactura = new Date(factura.fechaInicio);
-        const esDelMes =
-          fechaFactura.getMonth() === mesActual && fechaFactura.getFullYear() === añoActual;
+    // Guardar todas las facturas para la verificación de duplicados
+    todasLasFacturas.value = facturasSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
-        if (esDelMes) {
-          const importe = parseFloat(factura.importe.toString().replace(',', '.'));
-          esperadoMes += importe;
-          if (factura.estado === 'pagada' && factura.importePagado) {
-            const importePagado = parseFloat(factura.importePagado.toString().replace(',', '.'));
-            cobradoMes += importePagado;
-          }
+    facturasPendientes.value = todasLasFacturas.value.filter((factura) => {
+      const fechaFactura = new Date(factura.fechaInicio);
+      const esDelMes =
+        fechaFactura.getMonth() === mesActual && fechaFactura.getFullYear() === añoActual;
+
+      if (esDelMes) {
+        const importe = parseFloat(factura.importe.toString().replace(',', '.'));
+        esperadoMes += importe;
+        if (factura.estado === 'pagada' && factura.importePagado) {
+          const importePagado = parseFloat(factura.importePagado.toString().replace(',', '.'));
+          cobradoMes += importePagado;
         }
+      }
 
-        return factura.estado === 'pendiente';
-      });
+      return factura.estado === 'pendiente';
+    });
 
     totalCobradoMes.value = cobradoMes;
-    totalEsperadoMes.value = esperadoMes;
+    totalEsperadoMes.value = Number(esperadoMes.toFixed(2));
   } catch (error) {
     console.error('Error al cargar facturas:', error);
   }
@@ -592,6 +609,7 @@ const closeDialog = () => {
   dialog.value = false;
   editedItem.value = { ...defaultItem };
   registrarOtro.value = false;
+  errorMensaje.value = '';
   nextTick(() => {
     form.value?.reset();
     formValid.value = false;
@@ -601,10 +619,25 @@ const closeDialog = () => {
 const handleSubmit = async () => {
   if (saving.value) return;
 
+  // Resetear mensaje de error
+  errorMensaje.value = '';
+
   const isValid = await form.value?.validate();
 
   if (!isValid) {
     formValid.value = false;
+    return;
+  }
+
+  // Verificar si ya existe una factura similar
+  const hayDuplicado = verificarFacturaDuplicada(
+    editedItem.value.tipo,
+    editedItem.value.propiedadId,
+    editedItem.value.fechaFin
+  );
+
+  if (hayDuplicado) {
+    errorMensaje.value = `Ya existe una factura de ${editedItem.value.tipo} para esta propiedad en el mismo mes`;
     return;
   }
 
@@ -621,7 +654,7 @@ const saveFactura = async () => {
       tipo: editedItem.value.tipo,
       propiedadId: editedItem.value.propiedadId,
       propiedadNombre: editedItem.value.propiedadNombre,
-      importe: editedItem.value.importe.replace(',', '.'),
+      importe: editedItem.value.importe,
       fechaInicio: new Date(editedItem.value.fechaInicio).toISOString(),
       fechaFin: new Date(editedItem.value.fechaFin).toISOString(),
       estado: 'pendiente',
@@ -723,6 +756,30 @@ const getColorForTipo = (tipo) => {
 const calcularPorcentaje = (total) => {
   if (!totalGastosAnuales.value || total === 0) return 0;
   return (total / totalGastosAnuales.value) * 100;
+};
+
+// Verificar factura duplicada
+const verificarFacturaDuplicada = (tipo, propiedadId, fechaFin) => {
+  if (!tipo || !propiedadId || !fechaFin) return false;
+
+  // Obtener el mes y año de la fecha fin
+  const fecha = new Date(fechaFin);
+  const mes = fecha.getMonth();
+  const año = fecha.getFullYear();
+
+  // Buscar facturas del mismo tipo, propiedad y mes
+  return todasLasFacturas.value.some((factura) => {
+    // Comprobar si coincide tipo y propiedad
+    const mismoPropiedadYTipo = factura.tipo === tipo && factura.propiedadId === propiedadId;
+
+    if (mismoPropiedadYTipo) {
+      // Comprobar si es del mismo mes
+      const fechaFinFactura = new Date(factura.fechaFin);
+      return fechaFinFactura.getMonth() === mes && fechaFinFactura.getFullYear() === año;
+    }
+
+    return false;
+  });
 };
 
 // Cargar datos iniciales
