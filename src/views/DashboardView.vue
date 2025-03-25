@@ -48,7 +48,7 @@
               <v-card-item>
                 <v-card-title>
                   <v-icon icon="mdi-file-document-alert" class="me-2" color="warning"></v-icon>
-                  Pendientes
+                  Facturas Pendientes
                 </v-card-title>
                 <v-card-subtitle class="mt-2">
                   <span class="text-h4">{{ facturasPendientes.length }}</span>
