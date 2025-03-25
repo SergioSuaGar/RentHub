@@ -517,7 +517,7 @@ const loadFacturas = async (propiedadId = null) => {
     });
 
     totalCobradoMes.value = cobradoMes;
-    totalEsperadoMes.value = esperadoMes;
+    totalEsperadoMes.value = Number(esperadoMes.toFixed(2));
   } catch (error) {
     console.error('Error al cargar facturas:', error);
   }
