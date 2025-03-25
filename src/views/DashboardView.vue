@@ -16,10 +16,10 @@
       </v-toolbar>
 
       <v-card-text>
-        <!-- Primera fila: Facturas Mes y Pendientes -->
+        <!-- Primera fila: Facturas Mes, Pendientes y Saldo Total -->
         <v-row>
           <!-- Resumen de facturas -->
-          <v-col cols="12" md="6" lg="6">
+          <v-col cols="12" md="4" lg="4">
             <v-card class="cursor-pointer" @click="router.push('/facturas')">
               <v-card-item>
                 <v-card-title>
@@ -43,7 +43,7 @@
           </v-col>
 
           <!-- Facturas pendientes -->
-          <v-col cols="12" md="6" lg="6">
+          <v-col cols="12" md="4" lg="4">
             <v-card class="cursor-pointer" @click="router.push('/facturas?fromWidget=true')">
               <v-card-item>
                 <v-card-title>
@@ -53,6 +53,30 @@
                 <v-card-subtitle class="mt-2">
                   <span class="text-h4">{{ facturasPendientes.length }}</span>
                   <span class="text-caption ms-2">Por cobrar</span>
+                </v-card-subtitle>
+              </v-card-item>
+            </v-card>
+          </v-col>
+
+          <!-- Saldo Total -->
+          <v-col cols="12" md="4" lg="4">
+            <v-card class="cursor-pointer" @click="router.push('/facturas')">
+              <v-card-item>
+                <v-card-title>
+                  <v-icon
+                    icon="mdi-cash-multiple"
+                    class="me-2"
+                    :color="saldoTotal >= 0 ? 'success' : 'error'"
+                  ></v-icon>
+                  Saldo Total
+                </v-card-title>
+                <v-card-subtitle class="mt-2">
+                  <span class="text-h6" :class="saldoTotal >= 0 ? 'text-success' : 'text-error'">
+                    {{ formatCurrency(saldoTotal) }}
+                  </span>
+                  <span class="text-caption d-block">{{
+                    saldoTotal >= 0 ? 'A favor' : 'En contra'
+                  }}</span>
                 </v-card-subtitle>
               </v-card-item>
             </v-card>
@@ -340,6 +364,7 @@ const facturasPendientes = ref([]);
 const propiedades = ref([]);
 const totalCobradoMes = ref(0);
 const totalEsperadoMes = ref(0);
+const saldoTotal = ref(0);
 const propiedadesContratosPendientes = ref([]);
 const totalGastosAnuales = ref(0);
 const gastosPorTipo = ref({
@@ -492,6 +517,7 @@ const loadFacturas = async (propiedadId = null) => {
 
     let cobradoMes = 0;
     let esperadoMes = 0;
+    let saldoTotalCalculado = 0;
 
     // Guardar todas las facturas para la verificación de duplicados
     todasLasFacturas.value = facturasSnapshot.docs.map((doc) => ({
@@ -513,11 +539,20 @@ const loadFacturas = async (propiedadId = null) => {
         }
       }
 
+      // Calcular el saldo total
+      const importe = parseFloat(factura.importe.toString().replace(',', '.'));
+      const importePagado =
+        factura.estado === 'pagada' && factura.importePagado
+          ? parseFloat(factura.importePagado.toString().replace(',', '.'))
+          : 0;
+      saldoTotalCalculado += importePagado - importe;
+
       return factura.estado === 'pendiente';
     });
 
     totalCobradoMes.value = cobradoMes;
     totalEsperadoMes.value = Number(esperadoMes.toFixed(2));
+    saldoTotal.value = Number(saldoTotalCalculado.toFixed(2));
   } catch (error) {
     console.error('Error al cargar facturas:', error);
   }
