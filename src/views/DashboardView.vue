@@ -6,13 +6,70 @@
         <v-select
           v-model="propiedadSeleccionada"
           :items="propiedadesActivas"
-          item-title="nombre"
           item-value="id"
           label="Propiedad"
           clearable
           hide-details
           @update:model-value="onPropiedadSeleccionada"
-        ></v-select>
+          return-object
+        >
+          <template v-slot:item="{ props, item }">
+            <v-list-item v-bind="props" :title="null">
+              <v-list-item-title>{{ item.raw.nombre }}</v-list-item-title>
+              <template v-slot:append>
+                <v-icon
+                  v-if="tieneFacturasPendientes(item.raw.id)"
+                  icon="mdi-file-document-alert"
+                  color="warning"
+                  size="small"
+                  class="ms-2"
+                ></v-icon>
+                <v-icon
+                  v-if="getSaldoPropiedad(item.raw.id) > 0"
+                  icon="mdi-cash-plus"
+                  color="success"
+                  size="small"
+                  class="ms-2"
+                ></v-icon>
+                <v-icon
+                  v-if="getSaldoPropiedad(item.raw.id) < 0"
+                  icon="mdi-cash-minus"
+                  color="error"
+                  size="small"
+                  class="ms-2"
+                ></v-icon>
+              </template>
+            </v-list-item>
+          </template>
+          <template v-slot:selection="{ item }">
+            <v-list-item :title="null">
+              <v-list-item-title>{{ item.raw.nombre }}</v-list-item-title>
+              <template v-slot:append>
+                <v-icon
+                  v-if="tieneFacturasPendientes(item.raw.id)"
+                  icon="mdi-file-document-alert"
+                  color="warning"
+                  size="small"
+                  class="ms-2"
+                ></v-icon>
+                <v-icon
+                  v-if="getSaldoPropiedad(item.raw.id) > 0"
+                  icon="mdi-cash-plus"
+                  color="success"
+                  size="small"
+                  class="ms-2"
+                ></v-icon>
+                <v-icon
+                  v-if="getSaldoPropiedad(item.raw.id) < 0"
+                  icon="mdi-cash-minus"
+                  color="error"
+                  size="small"
+                  class="ms-2"
+                ></v-icon>
+              </template>
+            </v-list-item>
+          </template>
+        </v-select>
       </v-toolbar>
 
       <v-card-text>
@@ -376,6 +433,7 @@ const gastosPorTipo = ref({
 });
 const añoActual = new Date().getFullYear();
 const todasLasFacturas = ref([]);
+const todasLasFacturasCompletas = ref([]);
 const errorMensaje = ref('');
 
 // Variables para el formulario
@@ -505,8 +563,16 @@ const loadInquilinos = async (propiedadId = null) => {
 // Cargar facturas pendientes y calcular totales del mes
 const loadFacturas = async (propiedadId = null) => {
   try {
-    let q = query(collection(db, 'facturas'));
+    // Primero cargar todas las facturas sin filtrar para los iconos
+    const qCompleto = query(collection(db, 'facturas'));
+    const snapshotCompleto = await getDocs(qCompleto);
+    todasLasFacturasCompletas.value = snapshotCompleto.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
+    // Luego cargar las facturas filtradas si hay propiedad seleccionada
+    let q = query(collection(db, 'facturas'));
     if (propiedadId) {
       q = query(q, where('propiedadId', '==', propiedadId));
     }
@@ -519,7 +585,7 @@ const loadFacturas = async (propiedadId = null) => {
     let esperadoMes = 0;
     let saldoTotalCalculado = 0;
 
-    // Guardar todas las facturas para la verificación de duplicados
+    // Guardar las facturas filtradas
     todasLasFacturas.value = facturasSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
@@ -626,9 +692,15 @@ const propiedadesAjusteIPCPendiente = computed(() => {
 });
 
 // Manejar cambio de propiedad seleccionada
-const onPropiedadSeleccionada = async () => {
-  await loadData(propiedadSeleccionada.value);
-  await loadPropiedadesContratosPendientes(propiedadSeleccionada.value);
+const onPropiedadSeleccionada = async (propiedad) => {
+  const propiedadId = propiedad?.id || null;
+  if (propiedadId) {
+    await loadData(propiedadId);
+    await loadPropiedadesContratosPendientes(propiedadId);
+  } else {
+    await loadData();
+    await loadPropiedadesContratosPendientes();
+  }
 };
 
 // Funciones del formulario
@@ -815,6 +887,27 @@ const verificarFacturaDuplicada = (tipo, propiedadId, fechaFin) => {
 
     return false;
   });
+};
+
+// Añadir estas funciones antes del onMounted
+const tieneFacturasPendientes = (propiedadId) => {
+  return todasLasFacturasCompletas.value.some(
+    (factura) => factura.propiedadId === propiedadId && factura.estado === 'pendiente'
+  );
+};
+
+const getSaldoPropiedad = (propiedadId) => {
+  const facturasPropiedad = todasLasFacturasCompletas.value.filter(
+    (factura) => factura.propiedadId === propiedadId
+  );
+  return facturasPropiedad.reduce((total, factura) => {
+    const importe = parseFloat(factura.importe.toString().replace(',', '.'));
+    const importePagado =
+      factura.estado === 'pagada' && factura.importePagado
+        ? parseFloat(factura.importePagado.toString().replace(',', '.'))
+        : 0;
+    return total + (importePagado - importe);
+  }, 0);
 };
 
 // Cargar datos iniciales
