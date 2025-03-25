@@ -62,13 +62,10 @@
 
           <!-- Columna de saldo -->
           <template #[`item.saldo`]="{ item }">
-            <span v-if="item.estado === 'pagada'">
-              <span v-if="calcularSaldo(item) === 0">-</span>
-              <span v-else :class="getSaldoClass(item)">
-                {{ formatCurrency(calcularSaldo(item)) }}
-              </span>
+            <span v-if="calcularSaldo(item) === 0">-</span>
+            <span v-else :class="getSaldoClass(item)">
+              {{ formatCurrency(calcularSaldo(item)) }}
             </span>
-            <span v-else>-</span>
           </template>
           <template #[`footer.saldo`]>
             <span v-if="totalSaldo === 0">-</span>
@@ -1017,12 +1014,17 @@ const toggleEstado = async (item) => {
 
 // Calcular saldo
 const calcularSaldo = (item) => {
-  if (item.estado !== 'pagada' || !item.importePagado) return 0;
+  if (item.estado === 'pendiente') {
+    return -parseFloat(item.importe);
+  }
 
-  const importePagado = parseFloat(item.importePagado);
-  const importe = parseFloat(item.importe);
+  if (item.estado === 'pagada' && item.importePagado) {
+    const importePagado = parseFloat(item.importePagado);
+    const importe = parseFloat(item.importe);
+    return importePagado - importe;
+  }
 
-  return importePagado - importe;
+  return 0;
 };
 
 // Obtener clase CSS para el saldo
