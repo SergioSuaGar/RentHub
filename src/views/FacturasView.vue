@@ -1062,6 +1062,11 @@ const totalSaldo = computed(() => {
 onMounted(async () => {
   await loadPropiedades();
   await loadFacturas();
+
+  // Aplicar filtro desde la URL si existe
+  if (route.query.search) {
+    search.value = decodeURIComponent(route.query.search);
+  }
 });
 </script>
 
