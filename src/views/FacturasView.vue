@@ -293,7 +293,7 @@
                     label="Importe *"
                     :rules="[rules.required, rules.numeric]"
                     required
-                    :hint="'Introduce el importe (usar coma para decimales)'"
+                    :hint="'Introduce el importe (usar punto para decimales)'"
                     persistent-hint
                     @input="formatImporte"
                     validate-on-blur
@@ -373,7 +373,7 @@
                     label="Importe Pagado *"
                     :rules="[rules.required, rules.numeric]"
                     required
-                    :hint="'Introduce el importe pagado (usar coma para decimales)'"
+                    :hint="'Introduce el importe pagado (usar punto para decimales)'"
                     persistent-hint
                     @input="formatImportePagado"
                     validate-on-blur
@@ -501,8 +501,8 @@ const rules = {
   required: (v) => !!v || 'Este campo es requerido',
   numeric: (v) => {
     if (!v) return true;
-    const pattern = /^\d+(?:,\d{1,2})?$/;
-    return pattern.test(v) || 'Formato inválido. Use coma para decimales (ej: 123,45)';
+    const pattern = /^\d+(?:\.\d{1,2})?$/;
+    return pattern.test(v) || 'Formato inválido. Use punto para decimales (ej: 123.45)';
   },
   fechaFinValida: (v) => {
     if (!v || !editedItem.value.fechaInicio) return true;
@@ -526,19 +526,19 @@ const formatCurrency = (value) => {
   if (!value) return '0 €';
 
   // Convertir a número si es string
-  const numValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
 
   // Formatear el número con el signo adecuado
   const absValue = Math.abs(numValue);
   const signo = numValue < 0 ? '-' : '';
 
-  // Convertir a string con coma para decimales
+  // Convertir a string con punto para decimales
   let formattedValue = absValue.toString();
   if (formattedValue.includes('.')) {
-    // Si tiene decimales, asegurar 2 decimales y usar coma
-    formattedValue = absValue.toFixed(2).replace('.', ',');
-    // Si termina en ,00 quitar los decimales
-    if (formattedValue.endsWith(',00')) {
+    // Si tiene decimales, asegurar 2 decimales y usar punto
+    formattedValue = absValue.toFixed(2);
+    // Si termina en .00 quitar los decimales
+    if (formattedValue.endsWith('.00')) {
       formattedValue = formattedValue.substring(0, formattedValue.length - 3);
     }
   }
@@ -607,16 +607,16 @@ const formatDateShort = (timestamp) => {
 // Formatear importe
 const formatImporte = (event) => {
   let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
+  // Permitir solo números y un punto
+  value = value.replace(/[^\d.]/g, '');
+  // Asegurar solo un punto
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   // Limitar a dos decimales
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
   editedItem.value.importe = value;
 };
@@ -632,16 +632,16 @@ const pagoData = ref({
 // Formatear importe pagado
 const formatImportePagado = (event) => {
   let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
+  // Permitir solo números y un punto
+  value = value.replace(/[^\d.]/g, '');
+  // Asegurar solo un punto
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   // Limitar a dos decimales
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
   pagoData.value.importePagado = value;
 };
@@ -674,7 +674,7 @@ const calcularImporteProporcional = (precio, fechaInicio, fechaFin) => {
   const diasOcupados = Math.floor((fin - inicio) / (1000 * 60 * 60 * 24));
 
   // Convertir el precio a número
-  const precioNumerico = parseFloat(precio.toString().replace(',', '.'));
+  const precioNumerico = parseFloat(precio);
 
   // Calcular el precio por día basado en los días reales del mes
   const precioDiario = precioNumerico / ultimoDiaMes;
@@ -683,10 +683,10 @@ const calcularImporteProporcional = (precio, fechaInicio, fechaFin) => {
   const importeCalculado = precioDiario * diasOcupados;
 
   // Redondear a 2 decimales y formatear
-  let importeFormateado = importeCalculado.toFixed(2).replace('.', ',');
+  let importeFormateado = importeCalculado.toFixed(2);
 
   // Eliminar decimales si son ceros
-  if (importeFormateado.endsWith(',00')) {
+  if (importeFormateado.endsWith('.00')) {
     importeFormateado = importeFormateado.slice(0, -3);
   }
 
@@ -925,7 +925,7 @@ const updatePropiedadNombre = (propiedadId) => {
 const openDialogPago = (item) => {
   editedItem.value = { ...item };
   pagoData.value = {
-    importePagado: item.importe.toString().replace('.', ','),
+    importePagado: item.importe,
     fechaPago: new Date().toISOString().split('T')[0],
   };
   dialogPago.value = true;
@@ -973,7 +973,7 @@ const registrarPago = async () => {
       doc(db, 'facturas', editedItem.value.id),
       {
         estado: 'pagada',
-        importePagado: pagoData.value.importePagado.replace(',', '.'),
+        importePagado: pagoData.value.importePagado,
         fechaPago: new Date(pagoData.value.fechaPago).toISOString(),
         updatedAt: new Date().toISOString(),
         updatedBy: user.value.uid,
@@ -1019,8 +1019,8 @@ const toggleEstado = async (item) => {
 const calcularSaldo = (item) => {
   if (item.estado !== 'pagada' || !item.importePagado) return 0;
 
-  const importePagado = parseFloat(item.importePagado.toString().replace(',', '.'));
-  const importe = parseFloat(item.importe.toString().replace(',', '.'));
+  const importePagado = parseFloat(item.importePagado);
+  const importe = parseFloat(item.importe);
 
   return importePagado - importe;
 };
@@ -1031,6 +1031,18 @@ const getSaldoClass = (item) => {
   if (saldo === 0) return '';
   return saldo > 0 ? 'text-success' : 'text-error';
 };
+
+// Total Saldo
+const totalSaldo = computed(() => {
+  return facturas.value.reduce((total, factura) => {
+    if (factura.estado === 'pagada' && factura.importePagado) {
+      const importePagado = parseFloat(factura.importePagado);
+      const importe = parseFloat(factura.importe);
+      return total + (importePagado - importe);
+    }
+    return total;
+  }, 0);
+});
 
 // Cargar datos iniciales
 onMounted(async () => {

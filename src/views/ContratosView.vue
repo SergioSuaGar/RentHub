@@ -250,7 +250,7 @@
                     label="Precio *"
                     :rules="[rules.required, rules.numeric]"
                     required
-                    :hint="'Introduce el precio (usar coma para decimales)'"
+                    :hint="'Introduce el precio (usar punto para decimales)'"
                     persistent-hint
                     @input="formatPrecio"
                     validate-on-blur
@@ -529,8 +529,8 @@ const rules = {
   required: (v) => !!v || 'Este campo es requerido',
   numeric: (v) => {
     if (!v) return true;
-    const pattern = /^\d+(?:,\d{1,2})?$/;
-    return pattern.test(v) || 'Formato inválido. Use coma para decimales (ej: 123,45)';
+    const pattern = /^\d+(?:\.\d{1,2})?$/;
+    return pattern.test(v) || 'Formato inválido. Use punto para decimales (ej: 123.45)';
   },
   inquilinosRequired: (v) => (v && v.length > 0) || 'Debe seleccionar al menos un inquilino',
 };
@@ -542,7 +542,7 @@ const formTitle = computed(() => {
 
 // Formatear moneda
 const formatCurrency = (value) => {
-  if (!value) return '0,00 €';
+  if (!value) return '0.00 €';
   return `${value} €`;
 };
 
@@ -607,16 +607,16 @@ const formatDateShort = (timestamp) => {
 // Formatear precio
 const formatPrecio = (event) => {
   let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
+  // Permitir solo números y un punto
+  value = value.replace(/[^\d.]/g, '');
+  // Asegurar solo un punto
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   // Limitar a dos decimales
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
   editedItem.value.precio = value;
 };
@@ -902,18 +902,18 @@ const calcularEstadoRenovacion = (fechaRenovacion, ipcAjustado = true) => {
 // Formatear precio IPC
 const formatPrecioIPC = (event) => {
   let value = event.target.value;
-  // Permitir solo números y una coma
-  value = value.replace(/[^\d,]/g, '');
-  // Asegurar solo una coma
-  const parts = value.split(',');
+  // Permitir solo números y un punto
+  value = value.replace(/[^\d.]/g, '');
+  // Asegurar solo un punto
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   // Limitar a dos decimales
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
-  // Eliminar coma y decimales si son todos ceros
+  // Eliminar punto y decimales si son todos ceros
   if (parts.length === 2 && /^0*$/.test(parts[1])) {
     value = parts[0];
   }
@@ -926,15 +926,15 @@ const calcularNuevoPrecio = (precioActual, incrementoIPC) => {
     ajusteIPCData.value.nuevoPrecio = '';
     return;
   }
-  const precio = parseFloat(precioActual.replace(',', '.'));
-  const incremento = parseFloat(incrementoIPC.replace(',', '.'));
+  const precio = parseFloat(precioActual);
+  const incremento = parseFloat(incrementoIPC);
   const nuevoPrecio = precio * (1 + incremento / 100);
 
-  // Convertir a string con 2 decimales y reemplazar punto por coma
-  let precioFormateado = nuevoPrecio.toFixed(2).replace('.', ',');
+  // Convertir a string con 2 decimales
+  let precioFormateado = nuevoPrecio.toFixed(2);
 
   // Eliminar decimales si son ceros
-  if (precioFormateado.endsWith(',00')) {
+  if (precioFormateado.endsWith('.00')) {
     precioFormateado = precioFormateado.slice(0, -3);
   }
 

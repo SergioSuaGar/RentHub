@@ -253,7 +253,7 @@
                         label="Importe *"
                         :rules="[rules.required, rules.numeric]"
                         required
-                        :hint="'Introduce el importe (usar coma para decimales)'"
+                        :hint="'Introduce el importe (usar punto para decimales)'"
                         persistent-hint
                         @input="formatImporte"
                         validate-on-blur
@@ -389,8 +389,8 @@ const rules = {
   required: (v) => !!v || 'Este campo es requerido',
   numeric: (v) => {
     if (!v) return true;
-    const pattern = /^\d+(?:,\d{1,2})?$/;
-    return pattern.test(v) || 'Formato inválido. Use coma para decimales (ej: 123,45)';
+    const pattern = /^\d+(?:\.\d{1,2})?$/;
+    return pattern.test(v) || 'Formato inválido. Use punto para decimales (ej: 123.45)';
   },
   fechaFinValida: (v) => {
     if (!v || !editedItem.value.fechaInicio) return true;
@@ -403,20 +403,20 @@ const rules = {
 
 // Formatear moneda
 const formatCurrency = (value) => {
-  if (!value) return '0,00 €';
-  return `${value.toString().replace('.', ',')} €`;
+  if (!value) return '0.00 €';
+  return `${value.toString().replace(',', '.')} €`;
 };
 
 // Formatear importe
 const formatImporte = (event) => {
   let value = event.target.value;
-  value = value.replace(/[^\d,]/g, '');
-  const parts = value.split(',');
+  value = value.replace(/[^\d.]/g, '');
+  const parts = value.split('.');
   if (parts.length > 2) {
-    value = parts[0] + ',' + parts.slice(1).join('');
+    value = parts[0] + '.' + parts.slice(1).join('');
   }
   if (parts.length === 2 && parts[1].length > 2) {
-    value = parts[0] + ',' + parts[1].slice(0, 2);
+    value = parts[0] + '.' + parts[1].slice(0, 2);
   }
   editedItem.value.importe = value;
 };
@@ -654,7 +654,7 @@ const saveFactura = async () => {
       tipo: editedItem.value.tipo,
       propiedadId: editedItem.value.propiedadId,
       propiedadNombre: editedItem.value.propiedadNombre,
-      importe: editedItem.value.importe.replace(',', '.'),
+      importe: editedItem.value.importe,
       fechaInicio: new Date(editedItem.value.fechaInicio).toISOString(),
       fechaFin: new Date(editedItem.value.fechaFin).toISOString(),
       estado: 'pendiente',
