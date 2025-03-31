@@ -50,8 +50,22 @@ exports.probarGeneracionFacturas = onRequest(
   {
     cors: true,
     maxInstances: 1,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    region: 'us-central1',
+    invoker: 'public',
   },
   async (req, res) => {
+    // Configurar CORS
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    // Manejar preflight requests
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
     try {
       await generarFacturasCuotaPiso();
       logger.info('Facturas de cuota de piso generadas correctamente (prueba manual)');

@@ -983,7 +983,7 @@ const registrarPago = async () => {
       {
         estado: 'pagada',
         importePagado: pagoData.value.importePagado,
-        fechaPago: new Date(pagoData.value.fechaPago).toISOString(),
+        fechaPago: pagoData.value.fechaPago,
         updatedAt: new Date().toISOString(),
         updatedBy: user.value.uid,
       },
