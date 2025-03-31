@@ -51,6 +51,8 @@ exports.probarGeneracionFacturas = onRequest(
     cors: true,
     maxInstances: 1,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    region: 'us-central1',
+    invoker: 'public',
   },
   async (req, res) => {
     // Configurar CORS
