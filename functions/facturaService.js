@@ -20,16 +20,16 @@ async function generarFacturasCuotaPiso() {
       .collection('facturas')
       .where('propiedadId', '==', contrato.propiedadId)
       .where('tipo', '==', 'Cuota piso')
-      .where('fechaInicio', '>=', new Date(añoActual, mesActual, 1).toISOString())
-      .where('fechaInicio', '<', new Date(añoActual, mesActual + 1, 1).toISOString())
+      .where('fechaInicio', '>=', new Date(añoActual, mesActual, 1).toISOString().split('T')[0])
+      .where('fechaInicio', '<', new Date(añoActual, mesActual + 1, 1).toISOString().split('T')[0])
       .get();
 
     // Si no existe factura para este mes, crear una nueva
     if (facturasSnapshot.empty) {
       // Convertir el importe a número
       const importe = Number(contrato.precio);
-      const fechaInicioFactura = new Date(añoActual, mesActual, 1);
-      const fechaFinFactura = new Date(añoActual, mesActual + 1, 0);
+      const fechaInicioFactura = new Date(añoActual, mesActual, 1).toISOString().split('T')[0];
+      const fechaFinFactura = new Date(añoActual, mesActual + 1, 0).toISOString().split('T')[0];
 
       // Crear la factura
       const facturaData = {
@@ -37,8 +37,8 @@ async function generarFacturasCuotaPiso() {
         propiedadId: contrato.propiedadId,
         propiedadNombre: contrato.propiedadNombre,
         importe: importe.toFixed(2),
-        fechaInicio: fechaInicioFactura.toISOString(),
-        fechaFin: fechaFinFactura.toISOString(),
+        fechaInicio: fechaInicioFactura,
+        fechaFin: fechaFinFactura,
         estado: 'pendiente',
         createdAt: new Date().toISOString(),
         createdBy: contrato.createdBy,
