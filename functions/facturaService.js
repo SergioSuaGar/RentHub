@@ -14,7 +14,6 @@ async function generarFacturasCuotaPiso() {
   // Para cada contrato activo
   for (const contratoDoc of contratosSnapshot.docs) {
     const contrato = contratoDoc.data();
-    const fechaInicio = new Date(contrato.fechaInicio);
 
     // Verificar si ya existe una factura de cuota piso para este mes y propiedad
     const facturasSnapshot = await db
@@ -27,17 +26,10 @@ async function generarFacturasCuotaPiso() {
 
     // Si no existe factura para este mes, crear una nueva
     if (facturasSnapshot.empty) {
-      let importe = contrato.precio;
-      let fechaInicioFactura = new Date(añoActual, mesActual, 1);
-      let fechaFinFactura = new Date(añoActual, mesActual + 1, 0);
-
-      // Si el contrato comenzó en el mes actual, calcular el importe proporcional
-      if (fechaInicio.getMonth() === mesActual && fechaInicio.getFullYear() === añoActual) {
-        const diasTotales = new Date(añoActual, mesActual + 1, 0).getDate();
-        const diasRestantes = diasTotales - fechaInicio.getDate() + 1;
-        importe = (contrato.precio * diasRestantes) / diasTotales;
-        fechaInicioFactura = fechaInicio;
-      }
+      // Convertir el importe a número
+      const importe = Number(contrato.precio);
+      const fechaInicioFactura = new Date(añoActual, mesActual, 1);
+      const fechaFinFactura = new Date(añoActual, mesActual + 1, 0);
 
       // Crear la factura
       const facturaData = {
