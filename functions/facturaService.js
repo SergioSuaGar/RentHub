@@ -6,10 +6,11 @@ async function generarFacturasCuotaPiso() {
   // Obtener todos los contratos activos
   const contratosSnapshot = await db.collection('contratos').where('estado', '==', true).get();
 
-  // Obtener la fecha actual
+  // Obtener la fecha actual en UTC y ajustarla a Madrid (UTC+2)
   const fechaActual = new Date();
-  const mesActual = fechaActual.getMonth();
-  const añoActual = fechaActual.getFullYear();
+  const fechaMadrid = new Date(fechaActual.getTime() + 2 * 60 * 60 * 1000); // Añadir 2 horas en milisegundos
+  const mesActual = fechaMadrid.getMonth();
+  const añoActual = fechaMadrid.getFullYear();
 
   // Para cada contrato activo
   for (const contratoDoc of contratosSnapshot.docs) {
