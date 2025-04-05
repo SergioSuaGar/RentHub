@@ -596,7 +596,7 @@ const loadFacturas = async (propiedadId = null) => {
       return factura.estado === 'pendiente';
     });
 
-    totalCobradoMes.value = cobradoMes;
+    totalCobradoMes.value = Number(cobradoMes.toFixed(2));
     totalEsperadoMes.value = Number(esperadoMes.toFixed(2));
     saldoTotal.value = Number(saldoTotalCalculado.toFixed(2));
   } catch (error) {
